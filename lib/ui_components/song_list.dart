@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import '../entities/song.dart';
-// ------------------------------------------------
-// 3. Extracted UI Component: Song List
-// ------------------------------------------------
 
+/// Display the current list of Song objects. For now, limited to a single directory. 
 class SongList extends StatelessWidget {
     final List<Song> songs;
     final Song? currentSong;
-    // Callback function to communicate taps back to the parent state
+    /// Callback function to communicate taps back to the parent state
     final Function(Song) onSongTap;
 
     const SongList({
@@ -16,7 +14,7 @@ class SongList extends StatelessWidget {
         required this.currentSong,
         required this.onSongTap,
     });
-
+    /// Projects the song list and highlight what song is currently being play. 
     @override
     Widget build(BuildContext context) {
         return ListView.builder(

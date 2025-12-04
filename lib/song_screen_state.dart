@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'ui_components/playback_controls.dart';
@@ -5,22 +6,65 @@ import 'ui_components/now_playing_display.dart';
 import 'ui_components/song_list.dart';
 import 'entities/song.dart';
 import 'song_data.dart';
-
-import 'song_screen.dart'; // Import the parent widget
+import 'song_screen.dart';
+ 
+import 'entities/song_controls_manager.dart';
 
 /// State class made public due to the fact that I can not read long file. 
 class SongScreenState extends State<SongScreen> {
     Song? _currentSong;
     bool _isLoading = true; 
+    bool _isLooping = false;
+    Duration _currentDuration = Duration.zero; 
+    Duration _currentPosition = Duration.zero; 
 
+    StreamSubscription<Duration>? _onPositionSubscription;
+    StreamSubscription<Duration>? _onDurationSubscription;
+
+    late final SongControlsManager _controlsManager;
+    
     @override
     void initState() {
         super.initState();
+        // Initialize control manager - handles all interactions. 
+        _controlsManager = SongControlsManager(
+            audioService: widget.audioService,
+            context: context,
+            // Implementation of Getters.
+            getCurrentSong: () => _currentSong,
+            getIsLooping: () => _isLooping,
+            // Implementation of Setters (to update state and trigger setState).
+            setCurrentSong: (song) {setState(() { _currentSong = song; });},
+            setIsLooping: (isLooping) {setState(() { _isLooping = isLooping; });},
+            // Implementation of resetPlaybackState. 
+            resetPlaybackState: () {
+                setState(() {
+                    _currentSong = null;
+                    _currentDuration = Duration.zero;
+                    _currentPosition = Duration.zero;
+                });
+            },
+            setCurrentPosition: (position) {setState(() { _currentPosition = position; });},
+        );
+
         _loadSongs();
+        
+        // Rebuild UI based on current stream listener output. 
+        // Create Duration. 
+        _onDurationSubscription = widget.audioService.onDurationChanged.listen((d) {
+            setState(() { _currentDuration = d; });
+        });
+        // Change current position. 
+        _onPositionSubscription = widget.audioService.onPositionChanged.listen((p) {
+            setState(() { _currentPosition = p; });
+        });
     }
 
+    /// Cancel all streams and dispose all services when app is terminated. 
     @override
     void dispose() {
+        _onPositionSubscription?.cancel();
+        _onDurationSubscription?.cancel();
         widget.audioService.dispose();
         super.dispose();
     }
@@ -31,33 +75,14 @@ class SongScreenState extends State<SongScreen> {
             _isLoading = false;
         });
     }
-    /// Change the button UI if clicked, based on the state of the audioService. 
-    void _handlePlayResumePause() {
-        final audioService = widget.audioService;
-        
-        if (audioService.isPlaying) {
-            audioService.pause();
-        } else if (audioService.isPaused) {
-            audioService.resume();
-        } else {
-            // If the whole app is stopped, and user click run, play the 1st song in the list. 
-            if (_currentSong == null && SongData.availableSongs.isNotEmpty) { 
-                setState(() {
-                    _currentSong = SongData.availableSongs.first;
-                });
-                audioService.playFile(_currentSong!.assetPath);
-            }
-        }
-        setState(() {});
-    }
-    
-    /// Clear the selection of song (meaning, no song will be play) 
-    void _handleStop() {
-        widget.audioService.stop();
-        setState(() {
-            _currentSong = null;
-        });
-    }
+
+    // PlaybackControls delegate to SongControlsManager 
+    void _handlePlayResumePause() => _controlsManager.handlePlayResumePause();
+    void _handleStop() => _controlsManager.stop();
+    void _toggleLoop() => _controlsManager.toggleLoop();
+
+    // NowPlayingDisplay delegate to SongControlsManager 
+    void _handleSeek(double value) => _controlsManager.handleSeek(value);
 
     @override
     Widget build (BuildContext context){
@@ -71,15 +96,18 @@ class SongScreenState extends State<SongScreen> {
             appBar: AppBar(title: const Text('MP3 Player Test Version')),
             body: Column(
                 children: [
-                    NowPlayingDisplay(currentSong: _currentSong),
+                    NowPlayingDisplay(
+                        currentSong: _currentSong,
+                        duration: _currentDuration,
+                        position: _currentPosition,
+                        onSeek: _handleSeek,
+                    ),
                     Expanded(
                         child: SongList(
                             songs: SongData.availableSongs, 
                             currentSong: _currentSong,
-                            onSongTap: (song) {
-                                setState(() {
-                                    _currentSong = song;
-                                });
+                            onSongTap: (song) { 
+                                setState(() {_currentSong = song;});
                                 widget.audioService.playFile(song.assetPath);
                             },
                         ),
@@ -90,6 +118,8 @@ class SongScreenState extends State<SongScreen> {
                 audioService: widget.audioService,
                 onPlayPauseResume: _handlePlayResumePause,
                 onStop: _handleStop,
+                onToggleLoop: _toggleLoop,
+                isLooping: _isLooping,
             ),
         );
     }
