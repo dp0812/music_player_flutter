@@ -1,16 +1,16 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 
-import 'ui_components/playback_controls.dart';
-import 'ui_components/now_playing_display.dart';
-import 'ui_components/song_list.dart';
-import 'entities/song.dart';
-import 'song_data.dart';
+import '../ui_components/playback_controls.dart';
+import '../ui_components/now_playing_display.dart';
+import '../ui_components/song_list.dart';
+import '../entities/song.dart';
+import '../entities/song_repository.dart';
 import 'song_screen.dart';
  
-import 'entities/song_controls_manager.dart';
+import '../entities/song_controls_manager.dart';
 
-/// State class made public due to the fact that I can not read long file. 
+/// State class responsible for invoking the large majority of functions to the user, such as progress bar, play, pause, resume, etc
 class SongScreenState extends State<SongScreen> {
     Song? _currentSong;
     bool _isLoading = true; 
@@ -45,6 +45,10 @@ class SongScreenState extends State<SongScreen> {
                 });
             },
             setCurrentPosition: (position) {setState(() { _currentPosition = position; });},
+            notifySongListChanged: () {
+                setState(() { /* Empty setState to trigger UI rebuild */ });
+            },
+            reloadSongList: _loadSongs,
         );
 
         _loadSongs();
@@ -69,23 +73,32 @@ class SongScreenState extends State<SongScreen> {
         super.dispose();
     }
 
+    /// Load available songs
     Future<void> _loadSongs() async {
-        await SongData.loadSongsFromFiles();
+        await SongRepository.loadSongs(onListCleaned: (){
+            setState(() {/* Try to rebuild the UI */});
+        });
         setState(() {
             _isLoading = false;
         });
     }
 
     // PlaybackControls delegate to SongControlsManager 
+    void _handleAddSong() async {
+        await _controlsManager.handleAddSong();
+    }
+    void _handleSongTap(Song song) => _controlsManager.playSelectedSong(song);
     void _handlePlayResumePause() => _controlsManager.handlePlayResumePause();
     void _handleStop() => _controlsManager.stop();
     void _toggleLoop() => _controlsManager.toggleLoop();
+
 
     // NowPlayingDisplay delegate to SongControlsManager 
     void _handleSeek(double value) => _controlsManager.handleSeek(value);
 
     @override
     Widget build (BuildContext context){
+        //_loadSongs();
         if (_isLoading) {
             return const Scaffold(
                 body: Center(child: CircularProgressIndicator()),
@@ -93,7 +106,16 @@ class SongScreenState extends State<SongScreen> {
         }
 
         return Scaffold(
-            appBar: AppBar(title: const Text('MP3 Player Test Version')),
+            appBar: AppBar(
+                title: const Text('MP3 Player Test Version'),
+                actions: [
+                    IconButton(
+                        icon: const Icon(Icons.add_to_photos),
+                        onPressed: _handleAddSong, // Triggers the file picker
+                        tooltip: 'Add Song',
+                    ),
+                ],
+                ),
             body: Column(
                 children: [
                     NowPlayingDisplay(
@@ -104,12 +126,9 @@ class SongScreenState extends State<SongScreen> {
                     ),
                     Expanded(
                         child: SongList(
-                            songs: SongData.availableSongs, 
+                            songs: SongRepository.songCollection, 
                             currentSong: _currentSong,
-                            onSongTap: (song) { 
-                                setState(() {_currentSong = song;});
-                                widget.audioService.playFile(song.assetPath);
-                            },
+                            onSongTap: _handleSongTap,
                         ),
                     ),
                 ],

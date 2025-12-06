@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 
 import 'audio_player_service.dart';
 import 'song.dart';
-import '../song_data.dart';
+import 'song_repository.dart';
 
 // Define the required interfaces for updating the SongScreenState
 typedef SetSongCallback = void Function(Song? song);
 typedef SetLoopingCallback = void Function(bool isLooping);
 typedef SetPositionCallback = void Function(Duration position);
 typedef ResetStateCallback = void Function();
+typedef AddSongCallback = void Function();
 
 class SongControlsManager {
     final AudioPlayerService audioService;
@@ -23,7 +24,9 @@ class SongControlsManager {
     final SetLoopingCallback setIsLooping;
     final ResetStateCallback resetPlaybackState;
     final SetPositionCallback setCurrentPosition;
+    final AddSongCallback notifySongListChanged;
 
+    final Future<void> Function() reloadSongList;
 
     SongControlsManager({
         required this.audioService,
@@ -34,6 +37,8 @@ class SongControlsManager {
         required this.setIsLooping,
         required this.resetPlaybackState,
         required this.setCurrentPosition,
+        required this.notifySongListChanged,
+        required this.reloadSongList,
     }) {
         // Playlist logic 
         audioService.audioPlayer.onPlayerComplete.listen((_) {
@@ -55,7 +60,7 @@ class SongControlsManager {
     }
 
     /// The only function called by the song manager itself, not by user action. 
-    void _handleSongCompletion() {
+    void _handleSongCompletion() async {
         if (!getIsLooping()) {
             stop();
             return;
@@ -64,12 +69,25 @@ class SongControlsManager {
         final currentSong = getCurrentSong();
         if (currentSong == null) return;
 
-        final currentSongIndex = SongData.availableSongs.indexOf(currentSong);
-        final nextIndex = (currentSongIndex + 1) % SongData.availableSongs.length;
-        final nextSong = SongData.availableSongs[nextIndex];
-
+        final currentSongIndex = SongRepository.songCollection.indexOf(currentSong);
+        final nextIndex = (currentSongIndex + 1) % SongRepository.songCollection.length;
+        final nextSong = SongRepository.songCollection[nextIndex];
         setCurrentSong(nextSong);
-        audioService.playFile(nextSong.assetPath);
+
+        // This is a temporary ass fix. Why? For some reason I CAN NOT MAKE IT REBUILD THE UI for the 1st time loading the app after spotting an invalid file. 
+        // I DONT UNDERSTANDDD AAAA.
+        if (await SongRepository.isSongFileAvailable(nextSong.assetPath)){
+            audioService.playFile(nextSong.assetPath);
+        } else {
+            // If missing: Notify user, clean up file, and refresh UI
+            ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Error: Song file is missing or moved: ${nextSong.title}')),
+            );
+            await reloadSongList(); 
+            // Shoot to the next song, skipping the invalid song. 
+            if (getCurrentSong()?.assetPath == nextSong.assetPath) {_handleSongCompletion();} 
+        }
+
     }
 
     /// Handles Play, Resume, and Pause based on the audio state - User action dependent. 
@@ -89,10 +107,27 @@ class SongControlsManager {
         }
         
         // Play the first song if nothing is playing/on pause. 
-        if (getCurrentSong() == null && SongData.availableSongs.isNotEmpty) { 
-            final firstSong = SongData.availableSongs.first;
+        if (getCurrentSong() == null && SongRepository.songCollection.isNotEmpty) { 
+            final firstSong = SongRepository.songCollection.first;
             setCurrentSong(firstSong); 
             audioService.playFile(firstSong.assetPath);
+        }
+    }
+
+    /// Play song when user clicks on it. 
+    Future <void> playSelectedSong(Song song) async{
+        if (await SongRepository.isSongFileAvailable(song.assetPath)) {
+            // If valid, play the song (delegating to the UI to update the state)
+            setCurrentSong(song); // Updates _currentSong in SongScreenState
+            audioService.playFile(song.assetPath);
+        } else {
+            // If missing: Notify user, clean up file, and refresh UI
+            ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Error: Song file is missing or moved: ${song.title}')),
+            );
+            await reloadSongList(); 
+            //Reset the currently playing song if the missing song was the current one
+            if (getCurrentSong()?.assetPath == song.assetPath) {resetPlaybackState();}
         }
     }
 
@@ -109,5 +144,22 @@ class SongControlsManager {
         audioService.seek(newPosition);        
         // Update the UI position
         setCurrentPosition(newPosition);
+    }
+
+    /// Opens the system file picker, filters for MP3, and adds selected songs to the list.
+    /// Actual logic is delegated to SongRepository. Go there and check!
+    Future<void> handleAddSong() async {
+        final songsAdded = await SongRepository.addSongsFromUserSelection(); 
+        if (songsAdded > 0) {
+            // Notify the SongScreenState to rebuild the SongList
+            notifySongListChanged();  
+            ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('$songsAdded song(s) added!')),
+            );
+        } else {
+             ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('No new songs selected.')),
+            );
+        }
     }
 }

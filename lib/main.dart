@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'song_screen.dart'; 
+import 'package:music_player/pages/welcome_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,7 +16,7 @@ class MyApp extends StatelessWidget {
 				primarySwatch: Colors.blue,
 			),
 			//Set SongScreen as the home page
-			home: SongScreen(),
+			home: WelcomePage(),
 		);
 	}
 }
