@@ -3,13 +3,17 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 
+import 'package:music_player/entities/song_playlist.dart';
 import 'package:music_player/entities/song.dart';
 import 'song_saver.dart';
 
+/// Holds actual Song objects data. Contain a master List under the name songCollection, and a Map of sub list, under the name allSongPlaylists. 
 class SongRepository {
   
     /// Store all the Song objects in the supplier directory. Please make reference to this to the full song list. 
     static List<Song> songCollection = [];
+    /// Each playlist name is a key, connect to the list of songs. 
+    static Map<String,SongsPlaylist> allSongPlaylists = {};
 
     // Static function to check file existence.
     static Future<bool> isSongFileAvailable(String path) async {
@@ -17,12 +21,36 @@ class SongRepository {
         return await File(cleanPath).exists();
     }
 
+    /// Assumes SongRepository.songCollection has already been populated by loadSongs().
+    static Future<void> loadPlaylists() async {
+        // Clear in-memory collection before loading
+        allSongPlaylists.clear(); 
+        final List<String> playlistNames = await SongSaver.listPlaylistNames();
+        
+        for (String name in playlistNames) {
+            List<String> paths = await SongSaver.loadSavedPlaylist(playlistName: name);
+            SongsPlaylist newPlaylist = SongsPlaylist(playlistName: name);
+            int songsAdded = 0;
+            for (String path in paths) {
+                // Find the corresponding Song object from the master collection
+                int songIndex = songCollection.indexWhere((s) => s.assetPath == path);
+                if (songIndex == -1) continue; //Not found.  
+                Song validSong = songCollection[songIndex];
+                newPlaylist.addSong(validSong);
+                songsAdded++;
+            }
+            allSongPlaylists[name] = newPlaylist;
+            print('Loaded playlist "$name" with $songsAdded songs.');
+        }
+    }
+
     /// Now loads a special file with the path of the Song object. 
     /// This is persistent, and allow user added songs to be load the next time the program start again. 
     static Future<void> loadSongs() async {
         songCollection.clear(); // Clear any previous songs in the list. 
         // Load user-added songs from the persistent text file
-        final List<String> savedPaths = await SongSaver.loadSavedSongPaths();
+        File currentWorkingMasterFile = await  SongSaver.getMasterFile();
+        final List<String> savedPaths = await SongSaver.loadSavedSongPaths(songPathFile: currentWorkingMasterFile);
         final List<String> validPaths = [];
         final List<String> invalidPathsForRemoval = [];
 
@@ -40,7 +68,7 @@ class SongRepository {
         // If length saved != length valid path => rewrite. 
         if (savedPaths.length != validPaths.length ) {
             print("savedPaths.length = ${savedPaths.length} and validPaths.length = ${validPaths.length}");
-            await SongSaver.rewriteSavedSongPaths(validPaths);
+            await SongSaver.rewriteSavedSongPaths(validPaths, songPathFile: currentWorkingMasterFile);
         }
         // This is NOT redundant. If this check is excluded, the UI will contain invalid songs on the list. 
         for (String invalidPath in invalidPathsForRemoval){
@@ -48,9 +76,26 @@ class SongRepository {
         }
     }
 
+    /// Add a new playlist (WIP)
+    static Future<bool> addPlaylist(String name) async {
+        // Normalize the name to check for existence
+        final normalizedName = name.trim(); 
+        if (allSongPlaylists.containsKey(normalizedName)) {
+            print('Playlist "$normalizedName" already exists.');
+            return false;
+        }
+        // Create and store the new playlist
+        final newPlaylist = SongsPlaylist(playlistName: normalizedName);
+        allSongPlaylists[normalizedName] = newPlaylist;
+        print('Created new playlist: "$normalizedName"');
+        // Write this playlist to file.
+        await SongSaver.savePlaylist(playlistName: normalizedName);
+        return true;
+    }
+
     /// Prompt user to add 1 songs, or multiple songs (MUST be .mp3 file)
     /// This safely ensure that there is no race condition by using await on the master file.  
-    static Future<int> addSongsFromUserSelection() async {
+    static Future<int> addSongsFromUserSelection({String? playlistName}) async {
         try {
             FilePickerResult? result = await FilePicker.platform.pickFiles(
                 allowMultiple: true, 
@@ -69,6 +114,10 @@ class SongRepository {
                 if (songCollection.any((song) => song.assetPath == filePath)){ // Any dupplicate path exits => skip. 
                     print("Skipped adding duplicate song: ${newSong.title}");
                     continue;
+                }
+                // If there exists real playlist, add song to it. 
+                if (playlistName != null && allSongPlaylists[playlistName]!=null){                    
+                    allSongPlaylists[playlistName]!.addSong(newSong);
                 }
                 // If pass both checks => must be unique. 
                 songCollection.add(newSong); 

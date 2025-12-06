@@ -12,7 +12,7 @@ class AudioPlayerService {
     bool get isPaused => _audioPlayer.state == PlayerState.paused;
 
     /// Call this to play a new song from a local file path, specify by the getApplicationDocumentsDirectory() function;
-    /// On windows this would be: C:\Users\username\OneDrive\Documents\Music
+    /// On windows this would be: C:\Users\username\OneDrive\Documents
     Future<void> playFile(String filePath) async {
         await _audioPlayer.stop(); //stop current before running new one. 
         await _audioPlayer.setSource(DeviceFileSource(filePath));

@@ -5,14 +5,15 @@ import 'package:music_player/pages/welcome_page.dart';
 
 /// Let user switch between different sections of the app, using the navigation rails. 
 class WelcomePageState extends State<WelcomePage> {
+    int _selectedIndex = 0;
+
     @override
-    Widget build (BuildContext context){
-        int selectedIndex = 0;
+    Widget build (BuildContext context){    
         Widget page;
-        switch (selectedIndex){
+        switch (_selectedIndex){
             case 0: page = SongScreen();
-            case 1: page = PlaylistPage(); //needs implementation. 
-            default: throw UnimplementedError("No widget for selected index: $selectedIndex ");
+            case 1: page = PlaylistPage();
+            default: throw UnimplementedError("No widget for selected index: $_selectedIndex ");
         }
 
         return Scaffold(
@@ -31,10 +32,9 @@ class WelcomePageState extends State<WelcomePage> {
                                 label: Text('Favorites'),
                             ),
                         ],
-                        selectedIndex: selectedIndex,
+                        selectedIndex: _selectedIndex,
                         onDestinationSelected: (value) {
-                            setState(() {selectedIndex = value;});
-                            print('selected: $value'); //just to check if button is working.
+                            setState(() {_selectedIndex = value;});
                         },
                         ),
                     ),

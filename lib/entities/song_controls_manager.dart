@@ -74,8 +74,6 @@ class SongControlsManager {
         final nextSong = SongRepository.songCollection[nextIndex];
         setCurrentSong(nextSong);
 
-        // This is a temporary ass fix. Why? For some reason I CAN NOT MAKE IT REBUILD THE UI for the 1st time loading the app after spotting an invalid file. 
-        // I DONT UNDERSTANDDD AAAA.
         if (await SongRepository.isSongFileAvailable(nextSong.assetPath)){
             audioService.playFile(nextSong.assetPath);
         } else {
