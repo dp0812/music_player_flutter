@@ -75,12 +75,9 @@ class SongScreenState extends State<SongScreen> {
 
     /// Load available songs
     Future<void> _loadSongs() async {
-        await SongRepository.loadSongs(onListCleaned: (){
-            setState(() {/* Try to rebuild the UI */});
-        });
-        setState(() {
-            _isLoading = false;
-        });
+        await SongRepository.loadSongs();
+        // Commenting out these next lines make the app go into perpetual loading.  
+        setState(() {_isLoading = false;});
     }
 
     // PlaybackControls delegate to SongControlsManager 
