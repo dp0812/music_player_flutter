@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+//import 'package:music_player/entities/song.dart';
 import 'package:music_player/entities/song_repository.dart';
+//import 'package:music_player/ui_components/pick_from_master_view.dart';
 
 typedef NotifyListChangedCallback = void Function();
 
@@ -15,10 +17,26 @@ class PlaylistsManager {
         required this.notifyListChanged,
         required this.reloadPlaylistsList,
     });
-    
-    /// Disposes of internal resources (TextEditingController). Must be called by the parent State.
-    void dispose() {
-        _playlistNameController.dispose();
+
+    /// Handles the entire playlist creation workflow: dialog, business logic, and UI feedback.
+    Future<void> handleAddPlaylist() async {
+
+        final newPlaylistName = await _showAddPlaylistDialog();
+        if (newPlaylistName == null || newPlaylistName.isEmpty) return; 
+        final added = await SongRepository.addPlaylist(newPlaylistName);
+
+        if (added) {
+            notifyListChanged(); 
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Playlist "$newPlaylistName" created!')),
+            );
+        } else {
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Error: Playlist "$newPlaylistName" already exists.')),
+            );
+        }
     }
 
     /// Purely responsible for displaying the dialog and awaiting user input.
@@ -54,23 +72,9 @@ class PlaylistsManager {
             ),
         );
     }
-    
-    /// Handles the entire playlist creation workflow: dialog, business logic, and UI feedback.
-    Future<void> handleAddPlaylist() async {
 
-        final newPlaylistName = await _showAddPlaylistDialog();
-        if (newPlaylistName == null || newPlaylistName.isEmpty) return; 
-        final added = await SongRepository.addPlaylist(newPlaylistName);
-
-        if (added) {
-            notifyListChanged(); 
-            ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Playlist "$newPlaylistName" created!')),
-            );
-        } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Error: Playlist "$newPlaylistName" already exists.')),
-            );
-        }
+    /// Disposes of internal resources (TextEditingController). Must be called by the parent State.
+    void dispose() {
+        _playlistNameController.dispose();
     }
 }

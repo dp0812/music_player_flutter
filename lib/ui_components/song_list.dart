@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../entities/song.dart';
 
-/// Display the current list of Song objects. For now, limited to a single directory. 
+/// Display the current list of Song objects. 
+/// 
+/// This widget is built to be used when user wants to see what the Songs inside some container. 
 class SongList extends StatelessWidget {
     final List<Song> songs;
     final Song? currentSong;

@@ -25,11 +25,11 @@ class WelcomePageState extends State<WelcomePage> {
                         destinations: [
                             NavigationRailDestination(
                                 icon: Icon(Icons.home),
-                                label: Text('Home'),
+                                label: Text("Home"),
                             ),
                             NavigationRailDestination(
                                 icon: Icon(Icons.featured_play_list),
-                                label: Text('Favorites'),
+                                label: Text("Favorites"),
                             ),
                         ],
                         selectedIndex: _selectedIndex,

@@ -11,12 +11,20 @@ class AudioPlayerService {
     bool get isPlaying => _audioPlayer.state == PlayerState.playing;
     bool get isPaused => _audioPlayer.state == PlayerState.paused;
 
-    /// Call this to play a new song from a local file path, specify by the getApplicationDocumentsDirectory() function;
-    /// On windows this would be: C:\Users\username\OneDrive\Documents
+    // Variable to track the currently loaded file path.
+    String? _currentFilePath; 
+    String? get currentAssetPath => _currentFilePath;
+    Future<Duration?> getCurrentPosition() async => _audioPlayer.getCurrentPosition();
+    Future<Duration?> getCurrentDuration() async => _audioPlayer.getDuration();
+
+    /// Call this to play a new song from a local file path.
+    /// 
+    /// The caller must guarantee that said [filePath] is valid and exist - otherwise will throw exception. 
     Future<void> playFile(String filePath) async {
         await _audioPlayer.stop(); //stop current before running new one. 
         await _audioPlayer.setSource(DeviceFileSource(filePath));
         await _audioPlayer.resume(); 
+        _currentFilePath = filePath; //set current path when play. 
     }
 
     Future<void> pause() async {
@@ -29,6 +37,7 @@ class AudioPlayerService {
 
     Future<void> stop() async {
         await _audioPlayer.stop();
+        _currentFilePath = null; //clear current path when stop. 
     }
 
     /// Jump to the time specified by the parameter position. 

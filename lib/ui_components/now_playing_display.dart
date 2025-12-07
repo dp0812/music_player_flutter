@@ -19,8 +19,8 @@ class NowPlayingDisplay extends StatelessWidget {
 
     /// Format Duration to a readable MM:SS string
     String _formatDuration(Duration d) {
-        if (d.inSeconds < 0) return '00:00';
-        String twoDigits(int n) => n.toString().padLeft(2, '0');
+        if (d.inSeconds < 0) return "00:00";
+        String twoDigits(int n) => n.toString().padLeft(2, "0");
         final minutes = twoDigits(d.inMinutes.remainder(60));
         final seconds = twoDigits(d.inSeconds.remainder(60));
         return '$minutes:$seconds';
@@ -39,7 +39,7 @@ class NowPlayingDisplay extends StatelessWidget {
                 children: [
                     // Song title if applicable. 
                     Text(
-                        currentSong?.title ?? 'Not Playing Anything',
+                        currentSong?.title ?? "Not Playing Anything",
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                     ),

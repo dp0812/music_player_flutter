@@ -2,10 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:music_player/entities/song_repository.dart';
 import 'package:music_player/entities/song_playlist.dart';
 
+typedef PlaylistTapCallback = void Function(SongsPlaylist playlist);
+
+/// Displays the currently available playlist.
+/// 
+/// Currently does not refresh the count of Songs when you add a new Song and comeback. 
 class PlaylistView extends StatelessWidget {
     
     final VoidCallback onAddPlaylist;
-    const PlaylistView({super.key, required this.onAddPlaylist});
+    final PlaylistTapCallback onPlaylistTap; 
+    const PlaylistView({super.key, required this.onAddPlaylist, required this.onPlaylistTap});
 
     /// Projects all available playlists from the SongRepository.
     @override
@@ -33,9 +39,8 @@ class PlaylistView extends StatelessWidget {
                             title: Text(playlist.playlistName),
                             subtitle: Text("${playlist.songCount} song(s)"),
                             trailing: const Icon(Icons.arrow_forward_ios, size: 16.0),
-                            // TODO: tap should move to playlist page!
                             onTap: () {
-                                print("Tapped on playlist: ${playlist.playlistName}");
+                                onPlaylistTap(playlist);
                             },
                         );
                     },

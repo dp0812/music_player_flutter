@@ -1,4 +1,7 @@
+import 'dart:async';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:music_player/utilities/io_print.dart';
 
 import 'audio_player_service.dart';
 import 'song.dart';
@@ -8,23 +11,33 @@ import 'song_repository.dart';
 typedef SetSongCallback = void Function(Song? song);
 typedef SetLoopingCallback = void Function(bool isLooping);
 typedef SetPositionCallback = void Function(Duration position);
+typedef SetDurationCallback = void Function(Duration duration); 
 typedef ResetStateCallback = void Function();
 typedef AddSongCallback = void Function();
+typedef GetSongListCallback = List<Song> Function();  // Indicating which song List we are working with. 
 
 class SongControlsManager {
     final AudioPlayerService audioService;
     final BuildContext context; // Needed for status display when clicking loop. 
 
+    StreamSubscription<Duration>? _onPositionSubscription;
+    StreamSubscription<Duration>? _onDurationSubscription;
+    StreamSubscription<PlayerState>? _playerStateSubscription;
+    StreamSubscription<void>? _playerCompleteSubscription;
+
     // State Getters (To read the current state from the parent)
     final Song? Function() getCurrentSong;
     final bool Function() getIsLooping;
+    final GetSongListCallback getCurrentSongList;
 
     // State Setters (To write new state and trigger rebuilds on the parent)
     final SetSongCallback setCurrentSong;
     final SetLoopingCallback setIsLooping;
     final ResetStateCallback resetPlaybackState;
     final SetPositionCallback setCurrentPosition;
+    final SetDurationCallback setCurrentDuration; 
     final AddSongCallback notifySongListChanged;
+    //List<Song> currentSongList; 
 
     final Future<void> Function() reloadSongList;
 
@@ -34,16 +47,75 @@ class SongControlsManager {
         required this.getCurrentSong,
         required this.getIsLooping,
         required this.setCurrentSong,
+        required this.getCurrentSongList,  // Caller provide the current Song list. 
         required this.setIsLooping,
         required this.resetPlaybackState,
         required this.setCurrentPosition,
+        required this.setCurrentDuration, 
         required this.notifySongListChanged,
         required this.reloadSongList,
+        //required this.currentSongList,
     }) {
+        // Initialize stream listeners and store the subscriptions
+        _onDurationSubscription = audioService.onDurationChanged.listen((d) {
+            setCurrentDuration(d);
+        });
+        
+        _onPositionSubscription = audioService.onPositionChanged.listen((p) {
+            setCurrentPosition(p);
+        });
+
         // Playlist logic 
-        audioService.audioPlayer.onPlayerComplete.listen((_) {
+        _playerCompleteSubscription = audioService.audioPlayer.onPlayerComplete.listen((_) {
             _handleSongCompletion();
         });
+
+        // Listen to player state changes
+        _playerStateSubscription = audioService.audioPlayer.onPlayerStateChanged.listen((state) {
+            // This is just prep. WIP
+        });
+    }
+
+    /// Method to cancel the audio stream subscriptions.
+    /// This must be called from the parent widget's dispose() method.
+    void cancelAudioStreams() {
+        _onPositionSubscription?.cancel();
+        _onDurationSubscription?.cancel();
+        _playerCompleteSubscription?.cancel();
+        _playerStateSubscription?.cancel();
+        
+        // Reset all subscriptions to null
+        _onPositionSubscription = null;
+        _onDurationSubscription = null;
+        _playerCompleteSubscription = null;
+        _playerStateSubscription = null;
+    }
+
+    /// Synchronizes the UI state with the persistent audio service when the page loads.
+    /// Synchronizes the UI state with the persistent audio service when the page loads.
+    Future<void> synchronizePlaybackState() async {
+        try {
+            final currentAssetPath = audioService.currentAssetPath; 
+            final songList = getCurrentSongList();  // Get current list
+            
+            if (currentAssetPath != null) {
+                // Find the Song object corresponding to the playing file
+                final playingSong = songList.firstWhere(
+                    (song) => song.assetPath == currentAssetPath,
+                );
+                
+                // Update the UI's current song state
+                setCurrentSong(playingSong);
+                // Read the current position and duration and update the UI's state (async)
+                final position = await audioService.getCurrentPosition() ?? Duration.zero;
+                final duration = await audioService.getCurrentDuration() ?? Duration.zero;
+                setCurrentPosition(position); 
+                setCurrentDuration(duration);
+                
+            }
+        } catch (e) {
+            IO.e("Error synchronizing playback state: ",error: e);
+        }
     }
 
     /// Toggle looping behavior of the current Song List - User action dependent. 
@@ -65,27 +137,48 @@ class SongControlsManager {
             stop();
             return;
         }
-        
+
         final currentSong = getCurrentSong();
         if (currentSong == null) return;
-
-        final currentSongIndex = SongRepository.songCollection.indexOf(currentSong);
-        final nextIndex = (currentSongIndex + 1) % SongRepository.songCollection.length;
-        final nextSong = SongRepository.songCollection[nextIndex];
-        setCurrentSong(nextSong);
+        final currentSongList = getCurrentSongList();  // Get fresh list
+        final currentSongIndex = currentSongList.indexOf(currentSong);
+        
+        if (currentSongIndex == -1) {
+            // Current song not found in list, try the first song
+            if (currentSongList.isNotEmpty) {
+                final firstSong = currentSongList.first;
+                setCurrentSong(firstSong);
+                audioService.playFile(firstSong.assetPath);
+            } else {
+                stop();
+            }
+            return;
+        }
+        
+        final nextIndex = (currentSongIndex + 1) % currentSongList.length;
+        final nextSong = currentSongList[nextIndex];
 
         if (await SongRepository.isSongFileAvailable(nextSong.assetPath)){
+            setCurrentSong(nextSong);
             audioService.playFile(nextSong.assetPath);
         } else {
             // If missing: Notify user, clean up file, and refresh UI
-            ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Error: Song file is missing or moved: ${nextSong.title}')),
-            );
+            if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text('Removing missing file: ${nextSong.title}'),
+                        duration: const Duration(milliseconds: 1500),
+                    ),
+                );
+            }
+            
             await reloadSongList(); 
-            // Shoot to the next song, skipping the invalid song. 
-            if (getCurrentSong()?.assetPath == nextSong.assetPath) {_handleSongCompletion();} 
+            
+            if (getIsLooping() && context.mounted) {
+                await Future.delayed(const Duration(milliseconds: 100)); // make sure UI have time to refresh. 
+                _handleSongCompletion();
+            }
         }
-
     }
 
     /// Handles Play, Resume, and Pause based on the audio state - User action dependent. 
@@ -104,9 +197,10 @@ class SongControlsManager {
             return;
         }
         
-        // Play the first song if nothing is playing/on pause. 
-        if (getCurrentSong() == null && SongRepository.songCollection.isNotEmpty) { 
-            final firstSong = SongRepository.songCollection.first;
+        final currentSongList = getCurrentSongList();  // Get fresh list
+        // Play the first song if nothing is playing/on pause.  
+        if (getCurrentSong() == null && currentSongList.isNotEmpty) { 
+            final firstSong = currentSongList.first;
             setCurrentSong(firstSong); 
             audioService.playFile(firstSong.assetPath);
         }
@@ -145,9 +239,10 @@ class SongControlsManager {
     }
 
     /// Opens the system file picker, filters for MP3, and adds selected songs to the list.
+    /// 
     /// Actual logic is delegated to SongRepository. Go there and check!
-    Future<void> handleAddSong() async {
-        final songsAdded = await SongRepository.addSongsFromUserSelection(); 
+    Future<void> handleAddSong({String? playlistName}) async {
+        int songsAdded = await SongRepository.addSongsFromUserSelection(); 
         if (songsAdded > 0) {
             // Notify the SongScreenState to rebuild the SongList
             notifySongListChanged();  

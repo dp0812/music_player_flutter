@@ -1,20 +1,24 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:music_player/pages/playlist_detail_page.dart';
+import 'package:music_player/ui_components/pick_from_master_view.dart';
+import 'package:music_player/utilities/io_print.dart';
 
 import '../ui_components/playback_controls.dart';
 import '../ui_components/now_playing_display.dart';
 import '../ui_components/song_list.dart';
 import '../entities/song.dart';
 import '../entities/song_repository.dart';
-import 'song_screen.dart';
+import '../entities/song_saver.dart';
  
 import '../entities/song_controls_manager.dart';
 
 /// State class responsible for invoking the large majority of functions to the user, such as progress bar, play, pause, resume, etc
-class SongScreenState extends State<SongScreen> {
+class PlaylistDetailPageState extends State<PlaylistDetailPage> {
     Song? _currentSong;
     bool _isLoading = true; 
     bool _isLooping = false;
+    bool _isReloading = false; // Prevent multiple reloads when invalid file is spotted. 
     Duration _currentDuration = Duration.zero; 
     Duration _currentPosition = Duration.zero; 
 
@@ -39,7 +43,7 @@ class SongScreenState extends State<SongScreen> {
             // Implementation of Getters.
             getCurrentSong: () => _currentSong,
             getIsLooping: () => _isLooping,
-            getCurrentSongList: () => SongRepository.songCollection,  // Send in current working song list. 
+            getCurrentSongList: () => widget.playlist.getCurrentPlaylistSongs(),  // Use callback
             // Implementation of Setters (to update state and trigger setState).
             setCurrentSong: (song) {setState(() { _currentSong = song; });},
             setIsLooping: (isLooping) {setState(() { _isLooping = isLooping; });},
@@ -58,7 +62,8 @@ class SongScreenState extends State<SongScreen> {
             },
             reloadSongList: _loadAndSynchronizeSongs,
         );
-        _loadAndSynchronizeSongs();
+
+        _loadAndSynchronizeSongs();        
     }
 
     /// Cancel all streams and dispose all services when app is terminated. 
@@ -70,20 +75,70 @@ class SongScreenState extends State<SongScreen> {
     }
 
     /// Load available songs and synchronize playback state. 
+    /// 
+    /// This is significantly more complex than SongScreenState, due to the sub list being built from the master list. 
+    /// And there are a ton of weird cases that I fixed after testing. 
     Future<void> _loadAndSynchronizeSongs() async {
-        if (!mounted) return;        
-        setState(() { _isLoading = true; });
-        await SongRepository.loadSongs(); 
-        await _controlsManager.synchronizePlaybackState();
-        if (mounted) {
-            setState(() { _isLoading = false; });
+        if (!mounted || _isReloading) return; // Prevent multiple rapid reloads
+        _isReloading = true;
+        setState(() {_isLoading = true;});
+
+        try {
+            // First load songs to clean master list
+            await SongRepository.loadSongs();
+            
+            // Clean current playlist of any songs not in master list
+            final currentPlaylistSongs = widget.playlist.getCurrentPlaylistSongs();
+            final validSongs = currentPlaylistSongs.where((song) {
+                return SongRepository.songCollection.any((s) => s.assetPath == song.assetPath);
+            }).toList();
+            
+            // If playlist has invalid songs, update it
+            if (validSongs.length != currentPlaylistSongs.length) {
+                
+                widget.playlist.replaceSongs(validSongs);
+                IO.w("Replacement triggered, content of ${widget.playlist.playlistName}:");
+                for (Song someSong in widget.playlist.getCurrentPlaylistSongs()){
+                    IO.d(someSong.assetPath);
+                }
+                // Write this update to disk.
+                await SongSaver.savePlaylist(
+                    playlistName: widget.playlist.playlistName,
+                    songs: validSongs
+                );    
+                // Reload playlists to update SongRepository's map
+                await SongRepository.loadPlaylists();
+            }
+            
+            await _controlsManager.synchronizePlaybackState(); 
+        } catch (e) {
+            IO.e("Error in _loadAndSynchronizeSongs: ", error: e);
+        } finally {
+            if (mounted) {
+                setState(() {
+                    _isLoading = false;
+                    _isReloading = false;
+                });
+            } else {
+                _isReloading = false;
+            }
         }
     }
 
-    // PlaybackControls delegate to SongControlsManager 
+    /// Let user add a song from a list of currently valid song in the master list. 
+    /// 
+    /// This create an instance of PickFromMasterView to display the songs on our UI. 
     void _handleAddSong() async {
-        await _controlsManager.handleAddSong();
+        await showDialog(
+            context: context, 
+            builder: (BuildContext context){
+                return PickFromMasterView(currentPlaylistName:  widget.playlist.playlistName);
+            }
+        );
+        setState(() {/* Rebuild UI */});
     }
+
+    // PlaybackControls delegate to SongControlsManager 
     void _handleSongTap(Song song) => _controlsManager.playSelectedSong(song);
     void _handlePlayResumePause() => _controlsManager.handlePlayResumePause();
     void _handleStop() => _controlsManager.stop();
@@ -103,11 +158,11 @@ class SongScreenState extends State<SongScreen> {
 
         return Scaffold(
             appBar: AppBar(
-                title: const Text("MP3 Player Test Version"),
+                title: Text(widget.playlist.playlistName),
                 actions: [
                     IconButton(
                         icon: const Icon(Icons.add_to_photos),
-                        onPressed: _handleAddSong, // Triggers the file picker
+                        onPressed: _handleAddSong, // Triggers the song picker
                         tooltip: "Add Song",
                     ),
                 ],
@@ -122,7 +177,7 @@ class SongScreenState extends State<SongScreen> {
                     ),
                     Expanded(
                         child: SongList(
-                            songs: SongRepository.songCollection, 
+                            songs: widget.playlist.getCurrentPlaylistSongs(), 
                             currentSong: _currentSong,
                             onSongTap: _handleSongTap,
                         ),
