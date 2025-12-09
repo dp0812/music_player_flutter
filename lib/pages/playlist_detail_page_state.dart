@@ -135,6 +135,10 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
                 return PickFromMasterView(currentPlaylistName:  widget.playlist.playlistName);
             }
         );
+        // Update the song count in the playlist
+        widget.playlist.updateSongCount();
+        // Trigger a notification to update the PlaylistView
+        SongRepository.playlistNotifier.value = Map.from(SongRepository.allSongPlaylists);
         setState(() {/* Rebuild UI */});
     }
 

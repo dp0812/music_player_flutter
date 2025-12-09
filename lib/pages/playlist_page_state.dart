@@ -21,16 +21,15 @@ class PlaylistPageState extends State<PlaylistPage> {
         super.initState();
         _playlistsManager = PlaylistsManager(
             context: context,
-            notifyListChanged: () {setState(() {/* Rebuild UI*/}); },
-            reloadPlaylistsList:  _handleReloadPlaylistList   
+            reloadPlaylistsList: _handleReloadPlaylists, 
         );
 
         // initial load. 
-        _handleReloadPlaylistList();
+        _handleReloadPlaylists();
     }
 
     /// Reload the playlist list (I.e. how many playlists are being displayed.)
-    Future <void> _handleReloadPlaylistList() async{
+    Future <void> _handleReloadPlaylists() async{
         await SongRepository.loadPlaylists();
         setState(() {/* Rebuild UI. */});
     }

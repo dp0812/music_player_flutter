@@ -6,17 +6,18 @@ import 'package:music_player/utilities/io_print.dart';
 class SongsPlaylist {
     String playlistName; 
     int songCount;
-    final List<Song> _currentPlaylist = [];
+    List<Song> _currentPlaylist = [];
     static int playlistCount = 0; 
 
     SongsPlaylist({this.playlistName = "Unamed List", this.songCount = 0}){
         playlistCount++;
+        _currentPlaylist = [];
     }
 
     /// Add [newSong] to the current playlist and the correct file in the application directory. 
     ///
     /// If song already exist, this function does nothing and returns false.
-    /// Otherwise returns true.  
+    /// Otherwise increment number of song in playlist and returns true.  
     bool addSong(Song newSong){
         if (isSongInPlaylist(newSong)) return false; 
         _currentPlaylist.add(newSong);
@@ -37,6 +38,11 @@ class SongsPlaylist {
         return _currentPlaylist;
     }
 
+    /// Update songCount of this instance.
+    void updateSongCount() {
+        songCount = _currentPlaylist.length;
+    }
+    
     /// Returns the list of all paths of all Song in the current playlist.
     List<String> getAllPathsInPlaylist(){
         List<String> currentPaths = [];

@@ -16,29 +16,34 @@ typedef ResetStateCallback = void Function();
 typedef AddSongCallback = void Function();
 typedef GetSongListCallback = List<Song> Function();  // Indicating which song List we are working with. 
 
+/// This class provides service for pause, resume, stop, loop and progress bar information for songs. 
+/// 
+/// Client of this class must call [cancelAudioStreams] in their dispose function to ensure the audio is correctly stopped. 
 class SongControlsManager {
     final AudioPlayerService audioService;
     final BuildContext context; // Needed for status display when clicking loop. 
 
+    // Information to display the progress bar. 
     StreamSubscription<Duration>? _onPositionSubscription;
     StreamSubscription<Duration>? _onDurationSubscription;
+
+    // To cancel the audio 
     StreamSubscription<PlayerState>? _playerStateSubscription;
     StreamSubscription<void>? _playerCompleteSubscription;
 
-    // State Getters (To read the current state from the parent)
+    // Read the current state from the parent.
     final Song? Function() getCurrentSong;
     final bool Function() getIsLooping;
     final GetSongListCallback getCurrentSongList;
 
-    // State Setters (To write new state and trigger rebuilds on the parent)
+    // Write new state and trigger rebuilds on the parent.
     final SetSongCallback setCurrentSong;
     final SetLoopingCallback setIsLooping;
     final ResetStateCallback resetPlaybackState;
     final SetPositionCallback setCurrentPosition;
     final SetDurationCallback setCurrentDuration; 
     final AddSongCallback notifySongListChanged;
-    //List<Song> currentSongList; 
-
+    /// Caller should supply the reference to [_loadAndSynchronizeSongs] for this attribute, not calling the function.    
     final Future<void> Function() reloadSongList;
 
     SongControlsManager({
@@ -54,7 +59,6 @@ class SongControlsManager {
         required this.setCurrentDuration, 
         required this.notifySongListChanged,
         required this.reloadSongList,
-        //required this.currentSongList,
     }) {
         // Initialize stream listeners and store the subscriptions
         _onDurationSubscription = audioService.onDurationChanged.listen((d) {
@@ -76,8 +80,9 @@ class SongControlsManager {
         });
     }
 
-    /// Method to cancel the audio stream subscriptions.
-    /// This must be called from the parent widget's dispose() method.
+    /// Cancel the audio stream subscriptions and set everything subscription to null.
+    /// 
+    /// This must be called in the parent's [dispose] function to avoid any left over audio when leave the current the tab.
     void cancelAudioStreams() {
         _onPositionSubscription?.cancel();
         _onDurationSubscription?.cancel();
@@ -91,8 +96,9 @@ class SongControlsManager {
         _playerStateSubscription = null;
     }
 
-    /// Synchronizes the UI state with the persistent audio service when the page loads.
-    /// Synchronizes the UI state with the persistent audio service when the page loads.
+    /// Correctly update the current duration and position for a song, when switching between different pages. 
+    /// 
+    /// This function is called to make sure there is no left over audio while the progress bar is empty.
     Future<void> synchronizePlaybackState() async {
         try {
             final currentAssetPath = audioService.currentAssetPath; 
@@ -125,13 +131,15 @@ class SongControlsManager {
         
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-                content: Text('Looping this playlist: ${newLoopingState ? "ON" : "OFF"}'),
+                content: Text("Looping this playlist: ${newLoopingState ? "ON" : "OFF"}"),
                 duration: const Duration(milliseconds: 1000),
             ),
         );
     }
 
-    /// The only function called by the song manager itself, not by user action. 
+    /// If [getIsLooping] is false, stop the audio. Otherwise find the next Song in the list. 
+    /// 
+    /// This is called internally by the song_controls_manager. 
     void _handleSongCompletion() async {
         if (!getIsLooping()) {
             stop();
@@ -166,7 +174,7 @@ class SongControlsManager {
             if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                        content: Text('Removing missing file: ${nextSong.title}'),
+                        content: Text("Removing missing file: ${nextSong.title}"),
                         duration: const Duration(milliseconds: 1500),
                     ),
                 );
@@ -197,8 +205,8 @@ class SongControlsManager {
             return;
         }
         
-        final currentSongList = getCurrentSongList();  // Get fresh list
-        // Play the first song if nothing is playing/on pause.  
+        // Play the first song if nothing is playing/on pause. 
+        final currentSongList = getCurrentSongList();
         if (getCurrentSong() == null && currentSongList.isNotEmpty) { 
             final firstSong = currentSongList.first;
             setCurrentSong(firstSong); 
@@ -209,24 +217,21 @@ class SongControlsManager {
     /// Play song when user clicks on it. 
     Future <void> playSelectedSong(Song song) async{
         if (await SongRepository.isSongFileAvailable(song.assetPath)) {
-            // If valid, play the song (delegating to the UI to update the state)
-            setCurrentSong(song); // Updates _currentSong in SongScreenState
+            setCurrentSong(song); // Updates _currentSong
             audioService.playFile(song.assetPath);
         } else {
-            // If missing: Notify user, clean up file, and refresh UI
             ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Error: Song file is missing or moved: ${song.title}')),
             );
+            // first stop then reload 
+            stop();
             await reloadSongList(); 
-            //Reset the currently playing song if the missing song was the current one
-            if (getCurrentSong()?.assetPath == song.assetPath) {resetPlaybackState();}
         }
     }
 
     /// Stops playback and resets the UI state (song, duration, position) -  User action dependent.
     void stop() {
-        audioService.stop();
-        // Implementation of resetPlaybackState is in the song_screen_state.dart init function. 
+        audioService.stop(); 
         resetPlaybackState(); 
     }
     
@@ -238,10 +243,10 @@ class SongControlsManager {
         setCurrentPosition(newPosition);
     }
 
-    /// Opens the system file picker, filters for MP3, and adds selected songs to the list.
+    /// Opens the system file picker, filters for MP3, and adds selected songs to the masterList. 
     /// 
-    /// Actual logic is delegated to SongRepository. Go there and check!
-    Future<void> handleAddSong({String? playlistName}) async {
+    /// Does not change any other storage file than the masterList.txt. Actual logic is delegated to [SongRepository].
+    Future<void> handleAddSong() async {
         int songsAdded = await SongRepository.addSongsFromUserSelection(); 
         if (songsAdded > 0) {
             // Notify the SongScreenState to rebuild the SongList
@@ -250,7 +255,7 @@ class SongControlsManager {
                 SnackBar(content: Text('$songsAdded song(s) added!')),
             );
         } else {
-             ScaffoldMessenger.of(context).showSnackBar(
+            ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('No new songs selected.')),
             );
         }

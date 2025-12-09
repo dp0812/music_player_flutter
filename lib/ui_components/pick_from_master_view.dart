@@ -12,7 +12,7 @@ class PickFromMasterView extends StatelessWidget{
     const PickFromMasterView({super.key, required this.currentPlaylistName});
 
     /// The only usage of clicking on a song is to select it. For now, no multiple selection allowed. 
-    void _handleItemClick(Song currentSong){
+    void _addSongToPlaylist(Song currentSong){
         SongRepository.addSongsFromCollection(playlistName: currentPlaylistName, newSong: currentSong);
     }
 
@@ -25,7 +25,7 @@ class PickFromMasterView extends StatelessWidget{
                     return ListTile(
                     title: Text(song.title),
                     onTap: () {
-                        _handleItemClick(song);
+                        _addSongToPlaylist(song);
                         Navigator.of(context).pop(); // Close the dialog
                     },
                     );

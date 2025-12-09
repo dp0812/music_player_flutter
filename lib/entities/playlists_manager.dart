@@ -1,20 +1,15 @@
 import 'package:flutter/material.dart';
-//import 'package:music_player/entities/song.dart';
 import 'package:music_player/entities/song_repository.dart';
-//import 'package:music_player/ui_components/pick_from_master_view.dart';
 
-typedef NotifyListChangedCallback = void Function();
+typedef LoadAndSyncPlaylists = Future<void> Function();
 
 class PlaylistsManager {
     final BuildContext context;
-    final NotifyListChangedCallback notifyListChanged;
+    final LoadAndSyncPlaylists reloadPlaylistsList;
     final TextEditingController _playlistNameController = TextEditingController();
-
-    final Future<void> Function() reloadPlaylistsList;
 
     PlaylistsManager({
         required this.context,
-        required this.notifyListChanged,
         required this.reloadPlaylistsList,
     });
 
@@ -26,7 +21,7 @@ class PlaylistsManager {
         final added = await SongRepository.addPlaylist(newPlaylistName);
 
         if (added) {
-            notifyListChanged(); 
+            await reloadPlaylistsList(); 
             if (!context.mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Playlist "$newPlaylistName" created!')),
@@ -47,26 +42,26 @@ class PlaylistsManager {
         return showDialog<String>(
             context: context,
             builder: (BuildContext dialogContext) => AlertDialog(
-                title: const Text('Create New Playlist'),
+                title: const Text("Create New Playlist"),
                 content: TextField(
                     controller: _playlistNameController,
                     autofocus: true,
                     decoration: const InputDecoration(
-                        labelText: 'Playlist Name',
-                        hintText: 'Enter a name for your playlist',
+                        labelText: "Playlist Name",
+                        hintText: "Enter a name for your playlist",
                     ),
                 ),
                 actions: <Widget>[
                     TextButton(
                         onPressed: () => Navigator.pop(dialogContext, null), // Cancel returns null
-                        child: const Text('Cancel'),
+                        child: const Text("Cancel"),
                     ),
                     TextButton(
                         onPressed: () {
                             final name = _playlistNameController.text.trim();
                             if (name.isNotEmpty) Navigator.pop(dialogContext, name);
                         },
-                        child: const Text('Create'),
+                        child: const Text("Create"),
                     ),
                 ],
             ),
