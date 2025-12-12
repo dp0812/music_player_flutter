@@ -128,13 +128,7 @@ class SongControlsManager {
     void toggleLoop() {
         final newLoopingState = !getIsLooping();
         setIsLooping(newLoopingState);
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text("Looping this playlist: ${newLoopingState ? "ON" : "OFF"}"),
-                duration: const Duration(milliseconds: 1000),
-            ),
-        );
+        showMessage("Looping this playlist: ${newLoopingState ? "ON" : "OFF"}", duration: const Duration(seconds: 1));
     }
 
     /// If [getIsLooping] is false, stop the audio. Otherwise find the next Song in the list. 
@@ -220,10 +214,7 @@ class SongControlsManager {
             setCurrentSong(song); // Updates _currentSong
             audioService.playFile(song.assetPath);
         } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Error: Song file is missing or moved: ${song.title}')),
-            );
-            // first stop then reload 
+            showMessage("Error: Song file is missing or moved: '${song.title}'");
             stop();
             await reloadSongList(); 
         }
@@ -251,13 +242,17 @@ class SongControlsManager {
         if (songsAdded > 0) {
             // Notify the SongScreenState to rebuild the SongList
             notifySongListChanged();  
-            ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('$songsAdded song(s) added!')),
-            );
+            showMessage("$songsAdded song(s) added!");
         } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('No new songs selected.')),
-            );
+            showMessage("No new songs selected.");
         }
+    }
+
+    /// Helper to display snackbar message with a preset duration. 
+    void showMessage(String message, {Duration duration = const Duration(seconds: 2)}){
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(message), duration: duration),
+        );
     }
 }

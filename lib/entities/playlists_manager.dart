@@ -22,20 +22,15 @@ class PlaylistsManager {
 
         if (added) {
             await reloadPlaylistsList(); 
-            if (!context.mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Playlist "$newPlaylistName" created!')),
-            );
+            showMessage('Playlist "$newPlaylistName" created!');
         } else {
-            if (!context.mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Error: Playlist "$newPlaylistName" already exists.')),
-            );
+            showMessage('Error: Playlist "$newPlaylistName" already exists.');
         }
     }
 
     /// Purely responsible for displaying the dialog and awaiting user input.
-    /// Returns the trimmed name or null if the user cancels.
+    /// 
+    /// Returns the trimmed name if it is not empty, otherwise null.
     Future<String?> _showAddPlaylistDialog() async {
         _playlistNameController.clear(); 
 
@@ -71,5 +66,13 @@ class PlaylistsManager {
     /// Disposes of internal resources (TextEditingController). Must be called by the parent State.
     void dispose() {
         _playlistNameController.dispose();
+    }
+
+    /// Helper to display snackbar message with a preset duration. 
+    void showMessage(String message, {Duration duration = const Duration(seconds: 2)}){
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(message), duration: duration),
+        );
     }
 }
