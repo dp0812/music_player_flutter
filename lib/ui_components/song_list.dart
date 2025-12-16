@@ -28,7 +28,7 @@ class SongList extends StatelessWidget {
                     title: Text(song.title),
                     onTap: () => onSongTap(song),
                     selected: song == currentSong,
-                    selectedTileColor: Colors.blue.shade100,
+                    selectedTileColor: Theme.of(context).colorScheme.onPrimaryContainer,
                 );
             },
         );

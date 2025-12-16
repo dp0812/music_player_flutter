@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 
+import 'package:music_player/pages/song_detail_page.dart';
+
 import '../ui_components/playback_controls.dart';
 import '../ui_components/now_playing_display.dart';
 import '../ui_components/song_list.dart';
@@ -84,7 +86,44 @@ class SongScreenState extends State<SongScreen> {
     void _handleAddSong() async {
         await _controlsManager.handleAddSong();
     }
-    void _handleSongTap(Song song) => _controlsManager.playSelectedSong(song);
+    //void _handleSongTap(Song song) => _controlsManager.playSelectedSong(song);
+
+    /// If not currently playing => play the song. If currently playing => go to Song detail page.
+    /// 
+    /// Check of currently playing song is done using the assetPath in the system.   
+    void _handleSongTap(Song song) {
+        // Check if this is the currently playing song
+        if (_currentSong?.assetPath == song.assetPath && widget.audioService.isPlaying) {
+            _goToSongDetailPage(song);
+        } else {
+            _controlsManager.playSelectedSong(song);
+        }
+    }
+
+    /// Push the user to Song Detail Page
+    /// 
+    /// Use a fade in transition to hide any potential not fully loaded progress bar. 
+    void _goToSongDetailPage(Song song) async {
+        await Navigator.push(
+            context,
+            PageRouteBuilder(
+                transitionDuration: Duration(milliseconds: 200),
+                pageBuilder: (context, animation, secondaryAnimation) => SongDetailPage(
+                    initialSong: song,
+                    controlsManager: _controlsManager,
+                    audioService: widget.audioService,
+                    initialPosition: _currentPosition,
+                    initialDuration: _currentDuration,
+                ),
+                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                    return FadeTransition(
+                        opacity: animation,
+                        child: child,
+                    );
+                },
+            ),
+        );
+    }
     void _handlePlayResumePause() => _controlsManager.handlePlayResumePause();
     void _handleStop() => _controlsManager.stop();
     void _toggleLoop() => _controlsManager.toggleLoop();

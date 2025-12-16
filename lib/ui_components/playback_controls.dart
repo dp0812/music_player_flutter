@@ -32,7 +32,7 @@ class PlaybackControls extends StatelessWidget {
                 children: [
                     // Loop button. grey out if not click. 
                     IconButton(
-                        icon: Icon(Icons.repeat, size: 40, color: isLooping? Colors.blue: Colors.grey),
+                        icon: Icon(Icons.repeat, size: 40, color: isLooping? Theme.of(context).colorScheme.onPrimaryContainer: Colors.grey),
                         onPressed: onToggleLoop,
                     ),
                     // Main Play/Pause/Resume Button

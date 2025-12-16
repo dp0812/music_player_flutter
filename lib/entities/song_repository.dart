@@ -1,5 +1,5 @@
 import 'dart:io';
-
+import 'package:permission_handler/permission_handler.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
@@ -9,7 +9,7 @@ import 'package:music_player/entities/song.dart';
 import 'package:music_player/utilities/io_print.dart';
 import 'song_saver.dart';
 
-/// Holds actual Song objects data. Contain a master List under the name songCollection, and a Map of sub list, under the name allSongPlaylists. 
+/// Holds actual Song objects data. Contain a master List named [songCollection], and a Map of sub list, named [allSongPlaylists]. 
 class SongRepository {
     /// After changing the [allSongPlaylists] map, notify the listener with: playlistNotifier.value = Map.from(allSongPlaylists);
     static final ValueNotifier<Map<String, SongsPlaylist>> playlistNotifier = ValueNotifier<Map<String, SongsPlaylist>>({});
@@ -77,7 +77,7 @@ class SongRepository {
             if (await isSongFileAvailable(path)) { 
                 validPaths.add(path); // This path is valid, keep it
                 final String fileName = p.basenameWithoutExtension(path); 
-                songCollection.add(Song(title: fileName, assetPath: path));
+                songCollection.add(await Song.create(title: fileName, assetPath: path));
             } else {
                 IO.w("Invalid/Missing file detected, removing path: $path");
                 invalidPathsForRemoval.add(path);
@@ -129,6 +129,10 @@ class SongRepository {
     /// Currently only call by the SongScreenState, to add to the masterList. 
     static Future<int> addSongsFromUserSelection() async {
         try {
+            if (Platform.isAndroid || Platform.isIOS) {
+                await Permission.audio.request();
+            }
+            
             FilePickerResult? result = await FilePicker.platform.pickFiles(
                 allowMultiple: true, 
                 type: FileType.custom,
@@ -142,7 +146,7 @@ class SongRepository {
                 if (platformFile.path == null) continue; // Missing path => skip. 
                 final String filePath = platformFile.path!;
                 final String fileName = p.basenameWithoutExtension(filePath); 
-                final Song newSong = Song(title: fileName, assetPath: filePath);
+                final Song newSong = await Song.create(title: fileName, assetPath: filePath);
                 if (songCollection.any((song) => song.assetPath == filePath)){ // Any dupplicate path exits => skip. 
                     IO.t("Skipped adding duplicate song: ${newSong.title}");
                     continue;

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:music_player/pages/playlist_detail_page.dart';
+import 'package:music_player/pages/song_detail_page.dart';
 import 'package:music_player/ui_components/pick_from_master_view.dart';
 import 'package:music_player/utilities/io_print.dart';
 
@@ -142,12 +143,46 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
         setState(() {/* Rebuild UI */});
     }
 
-    // PlaybackControls delegate to SongControlsManager 
-    void _handleSongTap(Song song) => _controlsManager.playSelectedSong(song);
+    /// If not currently playing => play the song. If currently playing => go to Song detail page.
+    /// 
+    /// Check of currently playing song is done using the assetPath in the system.   
+    void _handleSongTap(Song song) {
+        // Check if this is the currently playing song
+        if (_currentSong?.assetPath == song.assetPath && widget.audioService.isPlaying) {
+            _goToSongDetailPage(song);
+        } else {
+            _controlsManager.playSelectedSong(song);
+        }
+    }
+
+    /// Push the user to Song Detail Page
+    /// 
+    /// Use a fade in transition to hide any potential not fully loaded progress bar. 
+    void _goToSongDetailPage(Song song) async {
+        await Navigator.push(
+            context,
+            PageRouteBuilder(
+                transitionDuration: Duration(milliseconds: 200),
+                pageBuilder: (context, animation, secondaryAnimation) => SongDetailPage(
+                    initialSong: song,
+                    controlsManager: _controlsManager,
+                    audioService: widget.audioService,
+                    initialPosition: _currentPosition,
+                    initialDuration: _currentDuration,
+                ),
+                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                    return FadeTransition(
+                        opacity: animation,
+                        child: child,
+                    );
+                },
+            ),
+        );
+    }
+
     void _handlePlayResumePause() => _controlsManager.handlePlayResumePause();
     void _handleStop() => _controlsManager.stop();
     void _toggleLoop() => _controlsManager.toggleLoop();
-
 
     // NowPlayingDisplay delegate to SongControlsManager 
     void _handleSeek(double value) => _controlsManager.handleSeek(value);
@@ -166,7 +201,7 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
                 actions: [
                     IconButton(
                         icon: const Icon(Icons.add_to_photos),
-                        onPressed: _handleAddSong, // Triggers the song picker
+                        onPressed: _handleAddSong,
                         tooltip: "Add Song",
                     ),
                 ],

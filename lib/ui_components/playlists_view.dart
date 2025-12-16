@@ -27,30 +27,7 @@ class PlaylistView extends StatelessWidget {
                 valueListenable: SongRepository.playlistNotifier,
                 builder: (context, playlistsMap, child) {
                     final List<SongsPlaylist> playlists = playlistsMap.values.toList();
-                    final isPlaylistsEmpty = playlists.isEmpty;
-
-                    return isPlaylistsEmpty
-                        ? const Center(
-                            child: Text(
-                                "No playlists found. Click the button on the right to create one!",
-                                style: TextStyle(fontSize: 16, color: Colors.grey),
-                            ),
-                        )
-                        : ListView.builder(
-                            itemCount: playlists.length,
-                            itemBuilder: (context, index) {
-                                final playlist = playlists[index];
-                                return ListTile(
-                                    leading: const Icon(Icons.featured_play_list),
-                                    title: Text(playlist.playlistName),
-                                    subtitle: Text("${playlist.songCount} song(s)"),
-                                    trailing: const Icon(Icons.arrow_forward_ios, size: 16.0),
-                                    onTap: () {
-                                        onPlaylistTap(playlist);
-                                    },
-                                );
-                            },
-                        );
+                    return _buildPlaylistLists(playlists);
                 },
             ),
             floatingActionButton: FloatingActionButton(
@@ -58,6 +35,35 @@ class PlaylistView extends StatelessWidget {
                 tooltip: "Add Playlist",
                 child: const Icon(Icons.add),
             ),
+        );
+    }
+
+    Widget _buildPlaylistLists(List<SongsPlaylist> playlists){
+        final bool isPlaylistsEmpty = playlists.isEmpty;
+        /// Build placeholder
+        if (isPlaylistsEmpty){
+            return const Center(
+                child: Text(
+                    "No playlists found. Click the button on the right to create one!",
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+            );
+        }
+        /// Otherwise build list. 
+        return ListView.builder(
+            itemCount: playlists.length,
+            itemBuilder: (context, index) {
+                final playlist = playlists[index];
+                return ListTile(
+                    leading: const Icon(Icons.featured_play_list),
+                    title: Text(playlist.playlistName),
+                    subtitle: Text("${playlist.songCount} song(s)"),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16.0),
+                    onTap: () {
+                        onPlaylistTap(playlist);
+                    },
+                );
+            },
         );
     }
 }

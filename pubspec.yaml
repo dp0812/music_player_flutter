@@ -30,8 +30,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  audioplayers: ^6.5.1
+  audioplayers: ^6.5.1 #play mp3 files
+  audiotags: ^1.4.5 #read metadata
   file_picker: ^10.3.7
+  permission_handler: ^12.0.1
   path_provider: ^2.1.5
   path: ^1.9.1
   logger: ^2.6.2
