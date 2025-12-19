@@ -89,7 +89,7 @@ class SongSaver {
         }
     }
 
-    /// Load the file that stored the playlist. 
+    /// Load paths that are available in the playlist [playlistName] 
     /// 
     /// If this file does not exists, return an empty list.
     /// The behavior of the method is identical for a playlist that exists but contain nothing, and a playlist that does not exist.  

@@ -1,9 +1,11 @@
-# music_player
+# MP3 Player
 
 This project is aimed to create a freely distributed mp3 player app (and, also my chance of practicing), with NO ADS. 
 Read the GNU license file for details of this freedom. 
 
 ## Getting Started
+
+To run this project, make sure you set up Flutter engine, and then clone the project accordingly. 
 
 Everything is in the lib directory, except for the input MP3.
 

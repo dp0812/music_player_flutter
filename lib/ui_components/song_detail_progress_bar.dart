@@ -23,7 +23,7 @@ class SongDetailProgressBar extends StatelessWidget {
     final Color nowPlayingColorDetail; 
     final Color nowPlayingColorText;
     final Color nowPlayingColorBackground; 
-    /// Set to [true] to stop the UI from displaying last [preventDuration] (in ms) of the progress bar. 
+    /// Default is false. Set to true to stop the UI from displaying last [preventDuration] (in ms) of the progress bar. 
     final bool preventLastDuration; 
     /// Default prevention duration is 50 ms. 
     final int preventDuration;
@@ -43,7 +43,7 @@ class SongDetailProgressBar extends StatelessWidget {
         this.nowPlayingColorDetail = Colors.green,
         this.nowPlayingColorText = Colors.green,
         this.nowPlayingColorBackground = Colors.lightGreen,
-        this.preventLastDuration = true,
+        this.preventLastDuration = false,
         this.preventDuration = 50,
     });
 
