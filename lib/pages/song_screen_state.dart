@@ -82,12 +82,6 @@ class SongScreenState extends State<SongScreen> {
         }
     }
 
-    // PlaybackControls delegate to SongControlsManager 
-    void _handleAddSong() async {
-        await _controlsManager.handleAddSong();
-    }
-    //void _handleSongTap(Song song) => _controlsManager.playSelectedSong(song);
-
     /// If not currently playing => play the song. If currently playing => go to Song detail page.
     /// 
     /// Check of currently playing song is done using the assetPath in the system.   
@@ -124,12 +118,13 @@ class SongScreenState extends State<SongScreen> {
             ),
         );
     }
+
+    void _handleAddSong() async {
+        await _controlsManager.handleAddSong();
+    }
     void _handlePlayResumePause() => _controlsManager.handlePlayResumePause();
     void _handleStop() => _controlsManager.stop();
     void _toggleLoop() => _controlsManager.toggleLoop();
-
-
-    // NowPlayingDisplay delegate to SongControlsManager 
     void _handleSeek(double value) => _controlsManager.handleSeek(value);
 
     @override
@@ -146,7 +141,7 @@ class SongScreenState extends State<SongScreen> {
                 actions: [
                     IconButton(
                         icon: const Icon(Icons.add_to_photos),
-                        onPressed: _handleAddSong, // Triggers the file picker
+                        onPressed: _handleAddSong, 
                         tooltip: "Add Song",
                     ),
                 ],
@@ -170,6 +165,8 @@ class SongScreenState extends State<SongScreen> {
             ),
             bottomNavigationBar: PlaybackControls(
                 audioService: widget.audioService,
+                onNextSong: _controlsManager.gotoNextSong,
+                onPreviousSong: _controlsManager.gotoPreviousSong,
                 onPlayPauseResume: _handlePlayResumePause,
                 onStop: _handleStop,
                 onToggleLoop: _toggleLoop,

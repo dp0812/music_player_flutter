@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:music_player/utilities/misc_formatter.dart';
 import '../entities/song.dart';
 
-/// All thing related to the current Song being played - name, progress bar, etc.
+/// Display info of Song being play, including: Song title, progress bar and duration.
+/// 
+/// Does not contain the controller for looping, stopping, next and previous, but the user can adjust the progress bar for the song. 
 class NowPlayingDisplay extends StatelessWidget {
     final Song? currentSong;
     final Duration duration;
@@ -80,7 +82,7 @@ class NowPlayingDisplay extends StatelessWidget {
         return Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-                Text(MiscFormatter.formatDuration(position)), // Current position
+                Text(MiscFormatter.formatDuration(position > duration ? duration : position)), // Current position, at max then use total duration. 
                 Text(MiscFormatter.formatDuration(duration)), // Total duration
             ],
         );

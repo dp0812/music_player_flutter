@@ -144,6 +144,70 @@ class SongControlsManager {
         }
     }
 
+    /// Go to the previous Song in the list, by index. 
+    /// 
+    /// Similar logic to advance to next song - just -1 instead of +1. 
+    void gotoPreviousSong() async {
+        final Song? currentSong = getCurrentSong();
+        final List<Song> currentSongList = getCurrentSongList(); 
+
+        if (currentSong == null) {
+            if (currentSongList.isNotEmpty) {
+                final firstSong = currentSongList.first;
+                _setCurrentSongAndBroadcast(firstSong);
+                audioService.playFile(firstSong.assetPath);
+            } else {
+                stop();
+            }
+            return;
+        }
+
+        final int currentSongIndex = currentSongList.indexOf(currentSong);
+        final int previousIndex = (currentSongIndex - 1) % currentSongList.length;
+        final Song previousSong = currentSongList[previousIndex];
+
+        if (await SongRepository.isSongFileAvailable(previousSong.assetPath)){
+            _setCurrentSongAndBroadcast(previousSong);
+            audioService.playFile(previousSong.assetPath);
+        } else {
+            showMessage("Error: Song file is missing or moved: '${previousSong.title}'");
+            stop();
+            await reloadSongList(); 
+        }
+    }
+
+    /// Go to the next Song in the list, by index. 
+    /// 
+    /// Similar logic to advance to next song. 
+    void gotoNextSong() async {
+        final Song? currentSong = getCurrentSong();
+        final List<Song> currentSongList = getCurrentSongList(); 
+
+        if (currentSong == null) {
+            if (currentSongList.isNotEmpty) {
+                final firstSong = currentSongList.first;
+                _setCurrentSongAndBroadcast(firstSong);
+                audioService.playFile(firstSong.assetPath);
+            } else {
+                stop();
+            }
+            return;
+        }
+
+        final int currentSongIndex = currentSongList.indexOf(currentSong);
+        final int nextIndex = (currentSongIndex + 1) % currentSongList.length;
+        final Song nextSong = currentSongList[nextIndex];
+
+        if (await SongRepository.isSongFileAvailable(nextSong.assetPath)){
+            _setCurrentSongAndBroadcast(nextSong);
+            audioService.playFile(nextSong.assetPath);
+        } else {
+            showMessage("Error: Song file is missing or moved: '${nextSong.title}'");
+            stop();
+            await reloadSongList(); 
+        }
+    }
+
     /// Toggle looping behavior of the current Song List - User action dependent. 
     void toggleLoop() {
         final newLoopingState = !getIsLooping();
@@ -285,13 +349,10 @@ class SongControlsManager {
     ///
     /// Helper for _handleSongCompletion. 
     void _advanceToNextSongIfLooping() async {
-        final currentSong = getCurrentSong();
-        if (currentSong == null) return;
-        final currentSongList = getCurrentSongList();  // Get fresh list
-        final currentSongIndex = currentSongList.indexOf(currentSong);
-        
-        if (currentSongIndex == -1) {
-            // Current song not found in list, try the first song
+        final Song? currentSong = getCurrentSong();
+        final List<Song> currentSongList = getCurrentSongList(); 
+
+        if (currentSong == null) {
             if (currentSongList.isNotEmpty) {
                 final firstSong = currentSongList.first;
                 _setCurrentSongAndBroadcast(firstSong);
@@ -301,23 +362,18 @@ class SongControlsManager {
             }
             return;
         }
-        
-        final nextIndex = (currentSongIndex + 1) % currentSongList.length;
-        final nextSong = currentSongList[nextIndex];
+
+        final int currentSongIndex = currentSongList.indexOf(currentSong);
+        final int nextIndex = (currentSongIndex + 1) % currentSongList.length;
+        final Song nextSong = currentSongList[nextIndex];
 
         if (await SongRepository.isSongFileAvailable(nextSong.assetPath)){
             _setCurrentSongAndBroadcast(nextSong);
             audioService.playFile(nextSong.assetPath);
         } else {
-            // If missing: Notify user, clean up file, and refresh UI
-            showMessage("Removing missing file: ${nextSong.title}");
-            
-            await reloadSongList(); 
-            
-            if (getIsLooping()) { 
-                await Future.delayed(const Duration(milliseconds: 50)); // make sure UI have time to refresh. 
-                _handleSongCompletion();
-            }
+            showMessage("Error: Song file is missing or moved: '${nextSong.title}'");
+            await reloadSongList();
+            _handleSongCompletion(); 
         }
     }
 

@@ -11,22 +11,23 @@ class PlaylistView extends StatelessWidget {
     
     final VoidCallback onAddPlaylist;
     final PlaylistTapCallback onPlaylistTap; 
-    const PlaylistView({super.key, required this.onAddPlaylist, required this.onPlaylistTap});
+    final PlaylistTapCallback? onPlaylistButtonTap; 
+    const PlaylistView({super.key, required this.onAddPlaylist, required this.onPlaylistTap, this.onPlaylistButtonTap});
 
     /// Projects all available playlists from the SongRepository.
-    /// 
-    /// This list of playlists is nearly identical from before. 
-    /// The difference is that it is updated using the value listener [playlistNotifier] from [SongRepository].
+    ///  
+    /// Use the change notifier [playlistNotifier] from [SongRepository] to update its view everytime a change to the data happen (not just identity change).
     @override
     Widget build(BuildContext context) {
         return Scaffold(
             appBar: AppBar(
                 title: const Text("Playlists View"),
             ),
-            body: ValueListenableBuilder<Map<String, SongsPlaylist>>(
-                valueListenable: SongRepository.playlistNotifier,
-                builder: (context, playlistsMap, child) {
-                    final List<SongsPlaylist> playlists = playlistsMap.values.toList();
+            body: AnimatedBuilder(
+                animation: SongRepository.playlistNotifier,
+                builder: (context, child) {
+                    final List<SongsPlaylist> playlists = 
+                        SongRepository.playlistNotifier.playlists.values.toList();
                     return _buildPlaylistLists(playlists);
                 },
             ),
@@ -58,10 +59,23 @@ class PlaylistView extends StatelessWidget {
                     leading: const Icon(Icons.featured_play_list),
                     title: Text(playlist.playlistName),
                     subtitle: Text("${playlist.songCount} song(s)"),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16.0),
-                    onTap: () {
-                        onPlaylistTap(playlist);
-                    },
+                    onTap: () => onPlaylistTap(playlist),
+                    trailing: 
+                        Row(
+                            spacing: 1.0,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                                Icon(Icons.more_vert), // needs tooltip rework. 
+                                if (onPlaylistButtonTap != null)
+                                IconButton (
+                                    icon: const Icon(Icons.delete, color: Colors.red),
+                                    onPressed: () => onPlaylistButtonTap!(playlist),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    tooltip: "Delete Playlist", 
+                                ),
+                            ],
+                        ) 
                 );
             },
         );

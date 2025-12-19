@@ -28,7 +28,7 @@ class Song {
         return newSong;
     }
 
-    /// This is useful BUT we only want picture, and artist/album artist. NOTHING else. 
+    /// Tag store all metadata BUT we only want picture, and artist/album artist. NOTHING else. 
     Future<void> _readMetadata() async {
         try {
             Tag? tag = await AudioTags.read(assetPath);
@@ -41,7 +41,7 @@ class Song {
                     orElse: () => tag.pictures.first,
                 );
                 albumArtBytes = cover.bytes;
-                IO.d("Bytes readed for Song = $title.");
+                IO.t("Found album art for Song '$title'.");
             } else {
                 albumArtBytes = null;
             }

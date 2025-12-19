@@ -1,7 +1,7 @@
 import 'dart:io';
+import 'package:music_player/entities/playlist_notifier.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:music_player/entities/song_playlist.dart';
@@ -11,8 +11,11 @@ import 'song_saver.dart';
 
 /// Holds actual Song objects data. Contain a master List named [songCollection], and a Map of sub list, named [allSongPlaylists]. 
 class SongRepository {
-    /// After changing the [allSongPlaylists] map, notify the listener with: playlistNotifier.value = Map.from(allSongPlaylists);
-    static final ValueNotifier<Map<String, SongsPlaylist>> playlistNotifier = ValueNotifier<Map<String, SongsPlaylist>>({});
+    /// After changing the [allSongPlaylists] map, either value or identity (swap the object), notify the listener with: 
+    /// ```dart 
+    /// playlistNotifier.setPlaylistsAndNotifyListeners(allSongPlaylists);
+    /// ```
+    static final PlaylistNotifier playlistNotifier = PlaylistNotifier();
     /// Store all the Song objects in the supplier directory. Please make reference to this to the full song list. 
     static List<Song> songCollection = [];
     /// Each playlist name is a key, connect to the list of songs. 
@@ -21,7 +24,7 @@ class SongRepository {
     /// Load playlist data in the application directory and populate the map [SongRepository.allSongPlaylists]
     /// 
     /// For every playlists and songs in each playlist, the functions check the [Song.assetPath]. 
-    /// If assetPath can be matched with data in the masterList.txt, a new Song object with that path will be add to the playlist. 
+    /// If assetPath can be matched with data in the [masterList.txt], a new Song object with that path will be add to the playlist. 
     /// After obtaining a valid list of paths, trigger write back to the storage file. 
     static Future<void> loadPlaylists() async {
         // Clear in-memory collection before loading
@@ -54,20 +57,19 @@ class SongRepository {
             IO.i('Write back to playlist "$name" completed!');
 
         }
-        playlistNotifier.value = Map.from(allSongPlaylists);
+        playlistNotifier.setPlaylistsAndNotifyListeners(allSongPlaylists);
     }
 
-    /// Loads the [masterFile.txt] in the application directory, and retrieve the [Song.assetPath] stored in that file. 
+    /// Loads the [masterList.txt] in the application directory, and retrieve the [Song.assetPath] stored in that file. 
     /// 
-    /// Remove all invalid Paths (Path that cannot be find on the current system) 
-    /// and rewrite the masterFile.txt to contain only valid paths.  
-    /// Remove all Song objects containing the invalid paths from the SongRepository storage. 
+    /// Remove all invalid Paths (Path that cannot be found on the current system) 
+    /// and rewrite the [masterList.txt] to contain only valid paths.  
+    /// Remove all Song objects containing the invalid paths from the [SongRepository] storage. 
     /// 
     /// Does not update info in the file containing the playlist. Call [loadPlaylists] to do this!
     static Future<void> loadSongs() async {
         songCollection.clear(); // Clear any previous songs in the list. 
-        // Load user-added songs from the persistent text file
-        File currentWorkingMasterFile = await  SongSaver.getMasterFile();
+        File currentWorkingMasterFile = await SongSaver.getMasterFile();
         final List<String> savedPaths = await SongSaver.loadSavedSongPaths(songPathFile: currentWorkingMasterFile);
         final List<String> validPaths = [];
         final List<String> invalidPathsForRemoval = [];
@@ -111,8 +113,39 @@ class SongRepository {
         IO.t('Created new playlist: "$normalizedName"');
         // Write this playlist to file.
         await SongSaver.savePlaylist(playlistName: normalizedName);
-        playlistNotifier.value = Map.from(allSongPlaylists); //Notify listener. 
+        playlistNotifier.setPlaylistsAndNotifyListeners(allSongPlaylists);
         return true;
+    }
+
+    /// Delete a playlist with [name] and notify all listeners. 
+    /// 
+    /// This both remove the playlist from [allSongPlaylists] and from the file system.
+    /// Only return true when the playlist is successfully remove from BOTH of these storage.   
+    static Future<bool> deletePlaylist(String name) async {
+        final String normalizedName = name.trim();
+        if (allSongPlaylists[normalizedName] == null) {
+            IO.d("Playlist name $normalizedName does not exists.");
+            return false; 
+        }
+        
+        // Remove this playlist from the Song Repository. 
+        allSongPlaylists.remove(normalizedName);
+        // Remove this playlist from the FILE system.
+        final File currentPlaylistFile = await SongSaver.getPlaylistFile(playlistName: normalizedName);
+        if (! (await currentPlaylistFile.exists())) {
+            IO.w("File does not exist. Abort deletion.");
+            return false; 
+        }
+
+        try {
+            await currentPlaylistFile.delete();
+            IO.d("Delete the following file: ${currentPlaylistFile.path}");
+        } catch (e){
+            IO.e("Error deleting file.", error: e);
+        }
+
+        playlistNotifier.setPlaylistsAndNotifyListeners(allSongPlaylists);
+        return true; 
     }
 
     /// This should only be used when the caller guarantees that the playlist exists. 
@@ -120,7 +153,7 @@ class SongRepository {
     /// Notify all of its listener if a new song is added, otherwise do nothing. 
     static Future<void> addSongsFromCollection({required String playlistName, required Song newSong}) async{
         if (allSongPlaylists[playlistName]!.addSong(newSong)) {
-            playlistNotifier.value = Map.from(allSongPlaylists); //Notify listener. 
+            playlistNotifier.setPlaylistsAndNotifyListeners(allSongPlaylists);
         }
     }
 
@@ -162,6 +195,20 @@ class SongRepository {
             IO.e("Error selecting files: ", error: e); 
             return 0;
         }
+    }
+
+    /// Remove all instance of Song object in the playlist where its assetPath == [newSong.assetPath] 
+    static Future<void> deleteSongFromPlaylist({required String playlistName, required Song newSong}) async {
+        IO.t("Playlist name = $playlistName");
+        IO.t("Song to be delete = ${newSong.assetPath}");
+        if (allSongPlaylists[playlistName] == null) return;
+
+        // Remove song with same path. 
+        allSongPlaylists[playlistName]!.getCurrentPlaylistSongs().removeWhere((s) => s.assetPath == newSong.assetPath);
+        allSongPlaylists[playlistName]!.updateSongCount();
+        // Write to file. 
+        await SongSaver.savePlaylist(playlistName: playlistName, songs: allSongPlaylists[playlistName]!.getCurrentPlaylistSongs());
+        playlistNotifier.setPlaylistsAndNotifyListeners(allSongPlaylists);  
     }
 
     /// Returns true if the path provided leads to a valid, existing file. 

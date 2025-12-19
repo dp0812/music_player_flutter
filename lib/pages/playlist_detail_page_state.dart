@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:music_player/pages/playlist_detail_page.dart';
 import 'package:music_player/pages/song_detail_page.dart';
+import 'package:music_player/ui_components/delete_song.dart';
 import 'package:music_player/ui_components/pick_from_master_view.dart';
 import 'package:music_player/utilities/io_print.dart';
 
@@ -136,11 +137,9 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
                 return PickFromMasterView(currentPlaylistName:  widget.playlist.playlistName);
             }
         );
-        // Update the song count in the playlist
+
         widget.playlist.updateSongCount();
-        // Trigger a notification to update the PlaylistView
-        SongRepository.playlistNotifier.value = Map.from(SongRepository.allSongPlaylists);
-        setState(() {/* Rebuild UI */});
+        setState(() {/* Rebuild UI with new song count and new song in playlist */});
     }
 
     /// If not currently playing => play the song. If currently playing => go to Song detail page.
@@ -153,6 +152,21 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
         } else {
             _controlsManager.playSelectedSong(song);
         }
+    }
+
+    /// Deleting a song from a playlist.
+    /// 
+    /// Only remove said song from the current playlist, not the masterList.txt
+    void _handleSongButtonTap(Song song) async {
+        await showDialog(
+            context: context,
+            builder: (BuildContext context) {
+                return DeleteSong(playlistName: widget.playlist.playlistName, someSong: song);
+            },
+        );
+
+        widget.playlist.updateSongCount();
+        setState(() {/* Rebuild UI with new song count and removal of song (if applicable) in playlist */});
     }
 
     /// Push the user to Song Detail Page
@@ -183,8 +197,6 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
     void _handlePlayResumePause() => _controlsManager.handlePlayResumePause();
     void _handleStop() => _controlsManager.stop();
     void _toggleLoop() => _controlsManager.toggleLoop();
-
-    // NowPlayingDisplay delegate to SongControlsManager 
     void _handleSeek(double value) => _controlsManager.handleSeek(value);
 
     @override
@@ -219,12 +231,15 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
                             songs: widget.playlist.getCurrentPlaylistSongs(), 
                             currentSong: _currentSong,
                             onSongTap: _handleSongTap,
+                            onSongButtonTap: _handleSongButtonTap, 
                         ),
                     ),
                 ],
             ),
             bottomNavigationBar: PlaybackControls(
                 audioService: widget.audioService,
+                onNextSong: _controlsManager.gotoNextSong,
+                onPreviousSong: _controlsManager.gotoPreviousSong,
                 onPlayPauseResume: _handlePlayResumePause,
                 onStop: _handleStop,
                 onToggleLoop: _toggleLoop,

@@ -9,9 +9,13 @@ class SongsPlaylist {
     List<Song> _currentPlaylist = [];
     static int playlistCount = 0; 
 
-    SongsPlaylist({this.playlistName = "Unamed List", this.songCount = 0}){
+    SongsPlaylist({this.playlistName = "Unamed List", this.songCount = 0, List<Song>? songLists}){ 
         playlistCount++;
         _currentPlaylist = [];
+        if (songLists != null) {
+            songCount = songLists.length;
+            _currentPlaylist.addAll(songLists);
+        }
     }
 
     /// Add [newSong] to the current playlist and the correct file in the application directory. 
@@ -57,5 +61,4 @@ class SongsPlaylist {
         _currentPlaylist.clear();
         _currentPlaylist.addAll(newSongs);
     }
-    
 }

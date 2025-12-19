@@ -11,6 +11,10 @@ import 'package:music_player/utilities/misc_formatter.dart';
 
 import '../entities/song.dart';
 
+/// Provides metadata details of the song and other things. 
+/// 
+/// This class contains separate play pause, and handle song play differently from the other pages that has play pause song function. 
+/// Thus currently it has severe functionality limit.
 class SongDetailPageState extends State<SongDetailPage> {
     late Song _displayedSong;
     late Duration _currentPosition;
@@ -312,9 +316,8 @@ class SongDetailPageState extends State<SongDetailPage> {
     /// 
     /// When loop mode is OFF, and the song comes to an end in the song detail page state, the 2 following condition MUST be sastify: 
     /// 
-    /// a. It should revert the progress bar to the beginning, and clicking play again should be seamless. That is, it should not have any visual problems, and/or audio problem.
-    /// 
-    /// b. Clicking on the play pause ensure that the app is correctly continuing (if pause midway). 
+    /// 1. It should revert the progress bar to the beginning, and clicking play again should be seamless. That is, it should not have any visual problems, and/or audio problem.
+    /// 2. Clicking on the play pause ensure that the app is correctly continuing (if pause midway). 
     bool _isSongNearEnd({int toSkip = 50}){
         return 
         (_currentDuration > Duration.zero)
