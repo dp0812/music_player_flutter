@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:music_player/utilities/io_print.dart';
@@ -10,6 +11,7 @@ import 'song_repository.dart';
 // Define the required interfaces for updating the SongScreenState
 typedef SetSongCallback = void Function(Song? song);
 typedef SetLoopingCallback = void Function(bool isLooping);
+typedef SetRandomCallback = void Function(bool isRandom);
 typedef SetPositionCallback = void Function(Duration position);
 typedef SetDurationCallback = void Function(Duration duration); 
 typedef ResetStateCallback = void Function();
@@ -34,6 +36,10 @@ class SongControlsManager {
     final StreamController<bool> _loopController = StreamController<bool>.broadcast();
     Stream<bool> get onLoopChanged => _loopController.stream;
 
+    /// Random state changes. 
+    final StreamController<bool> _randomController = StreamController<bool>.broadcast();
+    Stream<bool> get onRandomChanged => _randomController.stream;
+
     /// Position on the progress bar in and out of [SongDetailPageState]. 
     final StreamController<Duration> _positionController = StreamController<Duration>.broadcast();
     Stream<Duration> get onPositionChanged => _positionController.stream;
@@ -49,12 +55,16 @@ class SongControlsManager {
     // Read the current state from the parent.
     final Song? Function() getCurrentSong;
     final bool Function() getIsLooping;
+
+    final bool Function() getIsRandom; 
     /// Caller must supply this with the current working lists of Song. 
     final GetSongListCallback getCurrentSongList;
 
     // Write new state and trigger rebuilds on the parent.
     final SetSongCallback setCurrentSong;
     final SetLoopingCallback setIsLooping;
+    final SetRandomCallback setIsRandom; 
+
     final ResetStateCallback resetPlaybackState;
     final SetPositionCallback setCurrentPosition;
     final SetDurationCallback setCurrentDuration; 
@@ -67,9 +77,13 @@ class SongControlsManager {
         required this.context,
         required this.getCurrentSong,
         required this.getIsLooping,
+        required this.getIsRandom,
+
         required this.setCurrentSong,
         required this.getCurrentSongList,
         required this.setIsLooping,
+        required this.setIsRandom, 
+
         required this.resetPlaybackState,
         required this.setCurrentPosition,
         required this.setCurrentDuration, 
@@ -225,7 +239,15 @@ class SongControlsManager {
         final newLoopingState = !getIsLooping();
         setIsLooping(newLoopingState);
         _loopController.add(newLoopingState); // Notify listeners
-        showMessage("Looping this playlist: ${newLoopingState ? "ON" : "OFF"}", duration: const Duration(seconds: 1));
+        showMessage("Loop mode: ${newLoopingState ? "ON" : "OFF"}", duration: const Duration(seconds: 1));
+    }
+
+    /// Toggle random behavior of the current Song List
+    void toggleRandom(){
+        final newRandomState = !getIsRandom();
+        setIsRandom(newRandomState);
+        _randomController.add(newRandomState); // Notify listeners. 
+        showMessage("Random mode: ${newRandomState ? "ON" : "OFF"}", duration: const Duration(seconds: 1));
     }
 
     /// Handles Play, Resume, and Pause based on the audio state - User action dependent. 
@@ -346,12 +368,13 @@ class SongControlsManager {
         IO.t("Loop mode: ${getIsLooping()}");
         IO.t("Current song: ${getCurrentSong()?.title}");
 
-        // For non-looping mode:
-        if (!getIsLooping()) { 
+        // For non-looping + non-random mode:
+        if (!getIsLooping() && !getIsRandom()) { 
             _backToStartIfNotLooping();
             return;
         }
-        // Otherwise in loop mode => continue playing the next song. 
+
+        // Otherwise in loop mode or random mode => continue playing the next song. 
         _advanceToNextSongIfLooping();
     }
 
@@ -400,10 +423,16 @@ class SongControlsManager {
             return;
         }
 
+        // Normal loop. 
         final int currentSongIndex = currentSongList.indexOf(currentSong);
-        final int nextIndex = (currentSongIndex + 1) % currentSongList.length;
-        final Song nextSong = currentSongList[nextIndex];
+        int nextIndex = (currentSongIndex + 1) % currentSongList.length;
 
+        // Randomize loop naive implementation. 
+        if (getIsRandom()){
+            nextIndex = (currentSongIndex + Random().nextInt(currentSongList.length)) % currentSongList.length;
+        }
+        Song nextSong = currentSongList[nextIndex];
+        
         if (await SongRepository.isSongFileAvailable(nextSong.assetPath)){
             _setCurrentSongAndBroadcast(nextSong);
             audioService.playFile(nextSong.assetPath);

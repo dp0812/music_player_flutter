@@ -20,6 +20,8 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
     Song? _currentSong;
     bool _isLoading = true; 
     bool _isLooping = false;
+    bool _isRandom = false; 
+
     bool _isReloading = false; // Prevent multiple reloads when invalid file is spotted. 
     Duration _currentDuration = Duration.zero; 
     Duration _currentPosition = Duration.zero; 
@@ -45,10 +47,14 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
             // Implementation of Getters.
             getCurrentSong: () => _currentSong,
             getIsLooping: () => _isLooping,
+            getIsRandom: () => _isRandom,
+
             getCurrentSongList: () => widget.playlist.getCurrentPlaylistSongs(),  // Use callback
             // Implementation of Setters (to update state and trigger setState).
             setCurrentSong: (song) {setState(() { _currentSong = song; });},
             setIsLooping: (isLooping) {setState(() { _isLooping = isLooping; });},
+            setIsRandom: (isRandom) {setState(() {_isRandom = isRandom; });},
+
             // Implementation of resetPlaybackState. 
             resetPlaybackState: () {
                 setState(() {
@@ -198,6 +204,8 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
     void _handleStop() => _controlsManager.stop();
     void _toggleLoop() => _controlsManager.toggleLoop();
     void _handleSeek(double value) => _controlsManager.handleSeek(value);
+    void _toggleRandom() => _controlsManager.toggleRandom();
+
 
     @override
     Widget build (BuildContext context){
@@ -244,6 +252,8 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
                 onStop: _handleStop,
                 onToggleLoop: _toggleLoop,
                 isLooping: _isLooping,
+                onToggleRandom: _toggleRandom,
+                isRandom: _isRandom,
             ),
         );
     }

@@ -17,6 +17,7 @@ class SongScreenState extends State<SongScreen> {
     Song? _currentSong;
     bool _isLoading = true; 
     bool _isLooping = false;
+    bool _isRandom = false; 
     Duration _currentDuration = Duration.zero; 
     Duration _currentPosition = Duration.zero; 
 
@@ -41,10 +42,12 @@ class SongScreenState extends State<SongScreen> {
             // Implementation of Getters.
             getCurrentSong: () => _currentSong,
             getIsLooping: () => _isLooping,
+            getIsRandom: () => _isRandom,
             getCurrentSongList: () => SongRepository.songCollection,  // Send in current working song list. 
             // Implementation of Setters (to update state and trigger setState).
             setCurrentSong: (song) {setState(() { _currentSong = song; });},
             setIsLooping: (isLooping) {setState(() { _isLooping = isLooping; });},
+            setIsRandom: (isRandom) {setState(() {_isRandom = isRandom; });},
             // Implementation of resetPlaybackState. 
             resetPlaybackState: () {
                 setState(() {
@@ -126,6 +129,7 @@ class SongScreenState extends State<SongScreen> {
     void _handleStop() => _controlsManager.stop();
     void _toggleLoop() => _controlsManager.toggleLoop();
     void _handleSeek(double value) => _controlsManager.handleSeek(value);
+    void _toggleRandom() => _controlsManager.toggleRandom();
 
     @override
     Widget build (BuildContext context){
@@ -171,6 +175,8 @@ class SongScreenState extends State<SongScreen> {
                 onStop: _handleStop,
                 onToggleLoop: _toggleLoop,
                 isLooping: _isLooping,
+                onToggleRandom: _toggleRandom,
+                isRandom: _isRandom,
             ),
         );
     }

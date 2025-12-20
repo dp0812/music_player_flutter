@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../entities/audio_player_service.dart';
 
 typedef ToggleLoopCallBack = void Function();
+typedef ToggleRandomCallBack = void Function();
 
 /// Provide UI for button controlling the loop, previous, play/pause, next, stop actions, in this exact order.
 /// 
@@ -13,7 +14,9 @@ class PlaybackControls extends StatelessWidget {
     final VoidCallback onNextSong; 
     final VoidCallback onPreviousSong; 
     final ToggleLoopCallBack onToggleLoop;
+    final ToggleRandomCallBack onToggleRandom; 
     final bool isLooping; 
+    final bool isRandom;
     
     const PlaybackControls({
         super.key,
@@ -23,7 +26,9 @@ class PlaybackControls extends StatelessWidget {
         required this.onNextSong, 
         required this.onStop,
         required this.onToggleLoop,
-        required this.isLooping
+        required this.isLooping,
+        required this.onToggleRandom, 
+        required this.isRandom
     });
 
     /// With 5 buttons is placed on a "floating" dock - Ubuntu Gnome style with a couple extensions.  
@@ -46,7 +51,7 @@ class PlaybackControls extends StatelessWidget {
                     child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                            // Loop is the only button with an isActive attribute. 
+                            // Loop has isActive.  
                             _buildElevatedButton(context,icon: Icons.repeat, onPressed: onToggleLoop, isActive: isLooping),
                             _buildElevatedButton(context,icon: Icons.skip_previous, onPressed: onPreviousSong),
                             // Main play pause button. 
@@ -74,7 +79,9 @@ class PlaybackControls extends StatelessWidget {
                                 ),
                             ),
                             _buildElevatedButton(context, icon: Icons.skip_next, onPressed: onNextSong),
-                            _buildElevatedButton(context, icon: Icons.stop, onPressed: onStop),
+                            // Random also has isActive
+                            _buildElevatedButton(context, icon: Icons.shuffle, onPressed: onToggleRandom, isActive: isRandom),
+                            // _buildElevatedButton(context, icon: Icons.stop, onPressed: onStop),
                         ],
                     ),
                 ),
@@ -86,7 +93,7 @@ class PlaybackControls extends StatelessWidget {
     Widget _buildElevatedButton(BuildContext context, {required IconData icon, VoidCallback? onPressed, bool isActive = false}) {
         final theme = Theme.of(context);
         final isDark = theme.brightness == Brightness.dark;
-        // Loop button only. 
+        // Loop and Randome button. 
         final loopActiveColor = Theme.of(context).colorScheme.onPrimaryContainer; 
         final loopInactiveColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.9);
         

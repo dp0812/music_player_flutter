@@ -22,11 +22,13 @@ class SongDetailPageState extends State<SongDetailPage> {
     late Duration _currentDuration;
     bool _isLooping = false;
     bool _songEnded = false; 
+    bool _isRandom = false; 
 
     StreamSubscription<Duration>? _positionSubscription;
     StreamSubscription<Duration>? _durationSubscription;
     StreamSubscription<Song?>? _currentSongSubscription;
     StreamSubscription<bool>? _loopSubscription;
+    StreamSubscription<bool>? _randomSubscription;
     
     @override
     void initState() {
@@ -37,6 +39,7 @@ class SongDetailPageState extends State<SongDetailPage> {
         _currentPosition = widget.initialPosition;
         _currentDuration = widget.initialDuration;
         _isLooping = widget.controlsManager.getIsLooping();
+        _isRandom = widget.controlsManager.getIsRandom();
 
         // Check if song has ended based on passed data
         if (_isSongEnded()) _songEnded = true;
@@ -92,6 +95,8 @@ class SongDetailPageState extends State<SongDetailPage> {
                 onStop: widget.controlsManager.stop,
                 onToggleLoop: widget.controlsManager.toggleLoop,
                 isLooping: _isLooping,
+                onToggleRandom: widget.controlsManager.toggleRandom,
+                isRandom: _isRandom,
             ),
         );
     }
@@ -239,11 +244,19 @@ class SongDetailPageState extends State<SongDetailPage> {
         });
 
         _loopSubscription = widget.controlsManager.onLoopChanged.listen((isLooping) {
-          if (mounted) {
-            setState(() {
-              _isLooping = isLooping;
-            });
-          }
+            if (mounted) {
+                setState(() {
+                    _isLooping = isLooping;
+                });
+            }
+        });
+
+        _randomSubscription = widget.controlsManager.onRandomChanged.listen((isRandom){
+            if (mounted){
+                setState(() {
+                    _isRandom = isRandom; 
+                });
+            }
         });
     }
 
@@ -263,6 +276,7 @@ class SongDetailPageState extends State<SongDetailPage> {
         _durationSubscription?.cancel();
         _currentSongSubscription?.cancel();
         _loopSubscription?.cancel();
+        _randomSubscription?.cancel();
         super.dispose();
     }
 }

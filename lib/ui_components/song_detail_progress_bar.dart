@@ -69,8 +69,6 @@ class SongDetailProgressBar extends StatelessWidget {
                             preventLastDuration: preventLastDuration,
                             preventDuration: preventDuration,
                         ),
-                        
-                        if (songEnded) _buildNotifierWhenSongEnds(),
                     ],
                 ),
                 
@@ -105,29 +103,5 @@ class SongDetailProgressBar extends StatelessWidget {
             );
         }
         return SizedBox.shrink();
-    }
-
-    Widget _buildNotifierWhenSongEnds(){
-        return Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Center(
-                child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                        color: Colors.orange.withValues(alpha: 0.8),
-                        borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                        "Song ended - click play or drag to restart",
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                        ),
-                    ),
-                ),
-            ),
-        );
     }
 }
