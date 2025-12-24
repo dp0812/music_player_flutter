@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:music_player/entities/song_repository.dart';
+
+import '../entities/song_repository.dart';
 
 /// Prompt the user to delete the playlist. 
 class DeletePlaylist extends StatelessWidget {

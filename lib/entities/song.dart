@@ -1,8 +1,10 @@
 import 'dart:typed_data';
 
 import 'package:audiotags/audiotags.dart';
-import 'package:music_player/utilities/io_print.dart';
 
+/// All metadata of the Song can be obtained from the current tag. 
+/// 
+/// However, this class provide quick access to the title, assetPath and mainly the song cover art.
 class Song {
     final String title;
     final String assetPath;
@@ -41,7 +43,6 @@ class Song {
                     orElse: () => tag.pictures.first,
                 );
                 albumArtBytes = cover.bytes;
-                IO.t("Found album art for Song '$title'.");
             } else {
                 albumArtBytes = null;
             }

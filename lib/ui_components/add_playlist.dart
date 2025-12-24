@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:music_player/entities/song_repository.dart';
+
+import '../entities/song_repository.dart';
 
 /// Provide a text box for user to enter a name of a playlist, and add that to the file system. 
 class AddPlaylist extends StatelessWidget{

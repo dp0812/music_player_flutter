@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:music_player/entities/song_playlist.dart';
+
+import '../entities/song_playlist.dart';
 
 /// Notify listener when there is a change in the data and the identity of the playlists mapping. 
+/// 
+/// Used by the [SongRepository]. 
 class PlaylistNotifier extends ChangeNotifier {
     Map<String, SongsPlaylist> _playlists = {};
     Map<String, SongsPlaylist> get playlists => _playlists;

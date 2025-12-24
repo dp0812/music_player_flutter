@@ -1,9 +1,9 @@
-import 'package:music_player/entities/song.dart';
-import 'package:music_player/entities/song_saver.dart';
-import 'package:music_player/utilities/io_print.dart';
+import '../entities/song.dart';
+import '../entities/song_saver.dart';
 
 /// Compose of multiple Songs, provide quick access to all their assetPath and title. 
 class SongsPlaylist {
+    /// Name is designed to be unique when you insert them to the map. 
     String playlistName; 
     int songCount;
     List<Song> _currentPlaylist = [];
@@ -28,7 +28,6 @@ class SongsPlaylist {
         // save to file. 
         SongSaver.saveSongPath(newSong, playlistName: playlistName);
         songCount ++;
-        IO.t("Added song ${newSong.title} to playlist: $playlistName ");
         return true; 
     }
 
@@ -60,5 +59,24 @@ class SongsPlaylist {
     void replaceSongs(List<Song> newSongs) {
         _currentPlaylist.clear();
         _currentPlaylist.addAll(newSongs);
+        updateSongCount();
+    }
+
+    /// Add all non dupplicate song in [newSongs] to the playlist. 
+    bool addAll(List<Song> newSongs){
+        bool updated = false; 
+        for (Song someSong in newSongs){
+            if (!isSongInPlaylist(someSong)){
+                _currentPlaylist.add(someSong);
+                updated = true;
+            }  
+        }
+        updateSongCount();
+        return updated;
+    }
+
+    /// Invoke .clear() on the current List of Song(s).
+    void clearSongs(){
+        _currentPlaylist.clear();
     }
 }

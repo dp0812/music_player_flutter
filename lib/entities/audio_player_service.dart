@@ -1,18 +1,20 @@
 import 'dart:async';
 
 import 'package:audioplayers/audioplayers.dart';
+import '../utilities/io_print.dart';
 
+/// Responsible for playing of mp3 files. 
 class AudioPlayerService {
     final AudioPlayer _audioPlayer = AudioPlayer();
     AudioPlayer get audioPlayer => _audioPlayer;
 
-    // Custom stream controllers to handle completion properly
+    // Custom stream controllers to handle completion properly.
     final StreamController<Duration> _durationController = StreamController<Duration>.broadcast();
     final StreamController<Duration> _positionController = StreamController<Duration>.broadcast();
 
-    ///Song total length. 
+    /// Song total length. 
     Stream<Duration> get onDurationChanged => _audioPlayer.onDurationChanged;
-    ///Current time position. 
+    /// Current time position. 
     Stream<Duration> get onPositionChanged => _audioPlayer.onPositionChanged;
 
     bool get isPlaying => _audioPlayer.state == PlayerState.playing;
@@ -24,7 +26,7 @@ class AudioPlayerService {
     Future<Duration?> getCurrentPosition() async => _audioPlayer.getCurrentPosition();
     Future<Duration?> getCurrentDuration() async => _audioPlayer.getDuration();
 
-    // Track subscription for cleanup
+    // Track subscription for cleanup. 
     StreamSubscription<Duration>? _playerPositionSubscription;
     StreamSubscription<Duration>? _playerDurationSubscription;
     StreamSubscription<void>? _playerCompleteSubscription;
@@ -36,16 +38,18 @@ class AudioPlayerService {
 
     /// Call this to play a new song from a local file path.
     /// 
-    /// The caller must guarantee that said [filePath] is valid and exist - otherwise will throw exception. 
+    /// The caller must guarantee that said [filePath] is valid and exist. Otherwise throw exception. 
     Future<void> playFile(String filePath) async {
-        await _audioPlayer.stop(); //stop current before running new one. 
-        await _audioPlayer.setSource(DeviceFileSource(filePath));
-        await _audioPlayer.resume(); 
-        _currentFilePath = filePath; //set current path when play. 
-
-        // Emit zero position when starting new song
-        // This ensures UI resets if previous song was at the end
-        _positionController.add(const Duration(milliseconds: 0));
+        try {
+            await _audioPlayer.stop(); // Stop current before running new one. 
+            await _audioPlayer.setSource(DeviceFileSource(filePath));
+        } catch (e){
+            IO.e("Some shutdown exception.", error: e);
+        } finally {
+            _currentFilePath = filePath; // Set current path when play. 
+            await _audioPlayer.resume(); 
+            _positionController.add(const Duration(milliseconds: 0)); // Notify UI to revert to 0. 
+        }
     }
 
     Future<void> pause() async {
@@ -58,13 +62,19 @@ class AudioPlayerService {
 
     Future<void> stop() async {
         await _audioPlayer.stop();
-        _currentFilePath = null; //clear current path when stop. 
-        _positionController.add(const Duration(milliseconds: 0)); // Emit zero position when stopping
+        _currentFilePath = null; // Clear current path when stop. 
+        _positionController.add(const Duration(milliseconds: 0)); // Notify UI to revert to 0.
     }
 
     /// Jump to the time specified by the parameter position. 
+    /// 
+    /// Use try catch due to sometime (rare) there is a future timeout exception that I do not know how to reproduce.
     Future<void> seek(Duration position) async {
-        await _audioPlayer.seek(position);
+        try{
+            await _audioPlayer.seek(position);
+        } catch (e){
+            IO.w("Seek timeout exception.", error: e);
+        }
     }
 
     void dispose() {
@@ -81,24 +91,25 @@ class AudioPlayerService {
     }
 
     void _setupListeners() {
-        // Forward position updates from audio player
+        // Notify progress bar position changes. 
         _playerPositionSubscription = _audioPlayer.onPositionChanged.listen((position) {
             _positionController.add(position);
         });
         
-        // Forward duration updates from audio player
+        // Notify total duration changes.
         _playerDurationSubscription = _audioPlayer.onDurationChanged.listen((duration) {
             _durationController.add(duration);
         });
         
         // Handle song completion
         _playerCompleteSubscription = _audioPlayer.onPlayerComplete.listen((_) {
-            // When song completes, emit the final position then zero
-            // This ensures UI knows the song ended and position reset
-            _positionController.add(const Duration(milliseconds: 0));
+            _positionController.add(const Duration(milliseconds: 0)); // Notify UI to revert to 0. 
         });
-        
-        // Also listen to state changes for more reliable completion detection
+
+        // Remarks: This being here to prevent a rare instance that the random mode plays a song, 
+        // and said song cannot be control with the progress bar on the dock 
+        // (but can still be contorlled using the progress bar in song detail page)
+        // I currently have no clue why in some rare instance this behavior happen - just like the future not completed one. 
         _playerStateSubscription = _audioPlayer.onPlayerStateChanged.listen((state) {
             if (state == PlayerState.completed || state == PlayerState.stopped) {
                 // Add a small delay to ensure position stream has time to process

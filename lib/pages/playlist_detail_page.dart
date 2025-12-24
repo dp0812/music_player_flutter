@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:music_player/entities/audio_player_service.dart';
-import 'package:music_player/entities/song_playlist.dart';
-import 'package:music_player/pages/playlist_detail_page_state.dart';
+
+import 'playlist_detail_page_state.dart';
+import '../entities/audio_player_service.dart';
+import '../entities/song.dart';
+import '../entities/song_controls_manager.dart';
+import '../entities/song_playlist.dart';
 
 /// This page shows user the current Song in the Playlist. 
 /// 
@@ -10,11 +13,23 @@ import 'package:music_player/pages/playlist_detail_page_state.dart';
 class PlaylistDetailPage extends StatefulWidget {
     final SongsPlaylist playlist;
     final AudioPlayerService audioService;
-
+    final SongControlsManager controlsManager;
+    final Song? currentSong;
+    final bool isLooping;
+    final bool isRandom;
+    final Duration currentDuration;
+    final Duration currentPosition;
+    
     const PlaylistDetailPage({
         super.key,
         required this.playlist,
         required this.audioService,
+        required this.controlsManager,
+        required this.currentSong,
+        required this.isLooping,
+        required this.isRandom,
+        required this.currentDuration,
+        required this.currentPosition,
     });
 
     @override

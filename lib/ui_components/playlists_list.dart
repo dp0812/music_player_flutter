@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:music_player/entities/song_repository.dart';
-import 'package:music_player/entities/song_playlist.dart';
+
+import '../entities/song_repository.dart';
+import '../entities/song_playlist.dart';
 
 typedef PlaylistTapCallback = void Function(SongsPlaylist playlist);
 
-/// Displays the currently available playlist.
+/// Displays the currently available playlist(s).
 /// 
 /// Refresh playlist songs count based on listener [playlistNotifier] from [SongRepository]. 
-class PlaylistView extends StatelessWidget {
+class PlaylistsList extends StatelessWidget {
     
-    final VoidCallback onAddPlaylist;
     final PlaylistTapCallback onPlaylistTap; 
     final PlaylistTapCallback? onPlaylistButtonTap; 
-    const PlaylistView({super.key, required this.onAddPlaylist, required this.onPlaylistTap, this.onPlaylistButtonTap});
+    const PlaylistsList({super.key, required this.onPlaylistTap, this.onPlaylistButtonTap});
 
     /// Projects all available playlists from the SongRepository.
     ///  
@@ -20,49 +20,44 @@ class PlaylistView extends StatelessWidget {
     @override
     Widget build(BuildContext context) {
         return Scaffold(
-            appBar: AppBar(
-                title: const Text("Playlists View"),
-            ),
             body: AnimatedBuilder(
                 animation: SongRepository.playlistNotifier,
                 builder: (context, child) {
                     final List<SongsPlaylist> playlists = 
                         SongRepository.playlistNotifier.playlists.values.toList();
-                    return _buildPlaylistLists(playlists);
+                    return _buildPlaylistsIfAvailable(playlists);
                 },
-            ),
-            floatingActionButton: FloatingActionButton(
-                onPressed: onAddPlaylist,
-                tooltip: "Add Playlist",
-                child: const Icon(Icons.add),
             ),
         );
     }
 
-    Widget _buildPlaylistLists(List<SongsPlaylist> playlists){
-        final bool isPlaylistsEmpty = playlists.isEmpty;
-        /// Build placeholder
-        if (isPlaylistsEmpty){
-            return const Center(
-                child: Text(
-                    "No playlists found. Click the button on the right to create one!",
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+    /// If there exist some playlist => provide list of playlists. Otherwise provide placeholder.  
+    Widget _buildPlaylistsIfAvailable(List<SongsPlaylist> playlists){
+        return Column(
+            children: [
+                Expanded(
+                    child: playlists.isEmpty
+                        ? _buildPlaceholderIfNoPlaylistFound()
+                        : _buildPlaylistLists(playlists),
                 ),
-            );
-        }
-        /// Otherwise build list. 
+            ],
+        );
+    }
+
+    Widget _buildPlaylistLists(List<SongsPlaylist> playlists){
         return ListView.builder(
+            padding: const EdgeInsets.only(top: 8),
             itemCount: playlists.length,
             itemBuilder: (context, index) {
                 final playlist = playlists[index];
                 return ListTile(
                     leading: const Icon(Icons.featured_play_list),
-                    title: Text(playlist.playlistName),
+                    title: Text(playlist.playlistName, style: TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Text("${playlist.songCount} song(s)"),
                     onTap: () => onPlaylistTap(playlist),
                     trailing: 
                         Row(
-                            spacing: 1.0,
+                            spacing: 2.0,
                             mainAxisSize: MainAxisSize.min,
                             children: [
                                 Icon(Icons.more_vert), // needs tooltip rework. 
@@ -78,6 +73,19 @@ class PlaylistView extends StatelessWidget {
                         ) 
                 );
             },
+        );
+    }
+
+    Widget _buildPlaceholderIfNoPlaylistFound(){
+        return const Center(
+            child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                    "No playlists found. Click the 'Add Playlist' button to create one!",
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                    textAlign: TextAlign.center,
+                ),
+            ),
         );
     }
 }

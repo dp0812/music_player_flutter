@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:music_player/entities/song.dart';
-import 'package:music_player/entities/song_repository.dart';
+
+import '../entities/song.dart';
+import '../entities/song_repository.dart';
 
 /// Prompt the user to delete a Song. 
 class DeleteSong extends StatelessWidget{

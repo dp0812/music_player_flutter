@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:music_player/pages/welcome_page.dart';
-import 'package:music_player/custom_themes/dark_theme_1.dart';
+
+import '../custom_themes/dark_theme_1.dart';
+import '../pages/welcome_page.dart';
+
 void main() {
     runApp(const MyApp());
 }

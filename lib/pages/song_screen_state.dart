@@ -1,100 +1,114 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:music_player/ui_components/delete_song.dart';
 
-import 'package:music_player/pages/song_detail_page.dart';
-
-import '../ui_components/playback_controls.dart';
-import '../ui_components/now_playing_display.dart';
-import '../ui_components/song_list.dart';
+import 'song_detail_page.dart';
+import 'song_screen.dart';
 import '../entities/song.dart';
 import '../entities/song_repository.dart';
-import 'song_screen.dart';
- 
 import '../entities/song_controls_manager.dart';
+import '../ui_components/music_player_dock.dart';
+// import '../ui_components/now_playing_display.dart';
+import '../ui_components/song_list.dart';
 
-/// State class responsible for invoking the large majority of functions to the user, such as progress bar, play, pause, resume, etc
+/// Provides a list view of the current songs in the playlist alongside with the playback controls dock and the progress bar.
 class SongScreenState extends State<SongScreen> {
-    Song? _currentSong;
-    bool _isLoading = true; 
-    bool _isLooping = false;
+    bool _isLoading = true;
+    Song? _currentSong; 
+    bool _isLooping = false; 
     bool _isRandom = false; 
     Duration _currentDuration = Duration.zero; 
     Duration _currentPosition = Duration.zero; 
-
-    late final SongControlsManager _controlsManager;
+    
+    StreamSubscription<Duration>? _positionSubscription;
+    StreamSubscription<Duration>? _durationSubscription;
+    StreamSubscription<Song?>? _currentSongSubscription;
+    StreamSubscription<bool>? _loopSubscription;
+    StreamSubscription<bool>? _randomSubscription;
+    StreamSubscription<void>? _playerCompleteSubscription;
     
     @override
     void initState() {
         super.initState();
 
-        // Reset everything when screen is initialized
-        _currentSong = null;
-        _currentDuration = Duration.zero;
-        _currentPosition = Duration.zero;
-        
-        // Stop any playing audio from previous instances
-        widget.audioService.stop();
+        // Initialize from widget properties
+        _currentSong = widget.currentSong;
+        _isLooping = widget.isLooping;
+        _isRandom = widget.isRandom;
+        _currentDuration = widget.currentDuration;
+        _currentPosition = widget.currentPosition;
 
-        // Initialize control manager - handles all interactions. 
-        _controlsManager = SongControlsManager(
-            audioService: widget.audioService,
-            context: context,
-            // Implementation of Getters.
-            getCurrentSong: () => _currentSong,
-            getIsLooping: () => _isLooping,
-            getIsRandom: () => _isRandom,
-            getCurrentSongList: () => SongRepository.songCollection,  // Send in current working song list. 
-            // Implementation of Setters (to update state and trigger setState).
-            setCurrentSong: (song) {setState(() { _currentSong = song; });},
-            setIsLooping: (isLooping) {setState(() { _isLooping = isLooping; });},
-            setIsRandom: (isRandom) {setState(() {_isRandom = isRandom; });},
-            // Implementation of resetPlaybackState. 
-            resetPlaybackState: () {
-                setState(() {
-                    _currentSong = null;
-                    _currentDuration = Duration.zero;
-                    _currentPosition = Duration.zero;
-                });
-            },
-            setCurrentPosition: (position) {setState(() { _currentPosition = position; });},
-            setCurrentDuration: (duration) {setState(() { _currentDuration = duration; });},
-            notifySongListChanged: () {
-                setState(() { /* Empty setState to trigger UI rebuild */ });
-            },
-            reloadSongList: _loadAndSynchronizeSongs,
-        );
+        _setupStreamListeners();
+        _setupPlayerCompletionListener();
         _loadAndSynchronizeSongs();
     }
 
-    /// Cancel all streams and dispose all services when app is terminated. 
     @override
-    void dispose() {
-        widget.audioService.stop();
-        _controlsManager.cancelAudioStreams();
-        super.dispose();
-    }
-
-    /// Load available songs and synchronize playback state. 
-    Future<void> _loadAndSynchronizeSongs() async {
-        if (!mounted) return;        
-        setState(() { _isLoading = true; });
-        await SongRepository.loadSongs(); 
-        await _controlsManager.synchronizePlaybackState();
-        if (mounted) {
-            setState(() { _isLoading = false; });
+    Widget build(BuildContext context) {
+        // Placeholder loading screen. 
+        if (_isLoading) {
+            return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+            );
         }
-    }
 
-    /// If not currently playing => play the song. If currently playing => go to Song detail page.
-    /// 
-    /// Check of currently playing song is done using the assetPath in the system.   
-    void _handleSongTap(Song song) {
-        // Check if this is the currently playing song
-        if (_currentSong?.assetPath == song.assetPath && widget.audioService.isPlaying) {
-            _goToSongDetailPage(song);
-        } else {
-            _controlsManager.playSelectedSong(song);
-        }
+        return Scaffold(
+            appBar: AppBar(
+                title: const Text("Home"),
+            ),
+            body: Column(
+                children: [
+                    // Button row
+                    Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                                // Add Playlist Button
+                                ElevatedButton.icon(
+                                    onPressed: _handleAddSong,
+                                    icon: const Icon(Icons.playlist_add, size: 18),
+                                    label: const Text("Add Song"),
+                                ),
+                                ElevatedButton.icon(
+                                    onPressed: _handleAddMusicDirectory, 
+                                    icon: const Icon(Icons.folder, size: 18),
+                                    label: const Text("Scan folder"),
+                                ),
+                            ],
+                        ),
+                    ),
+                    // A thin line to separate the buttons and the list. 
+                    const Divider(height: 0), 
+                    // List of all current Song(s)
+                    Expanded(
+                        child: SongList(
+                            currentPlaylist: SongRepository.masterSongPlaylist,
+                            currentSong: _currentSong,
+                            onSongTap: _handleSongTap,
+                            onSongButtonTap: _handleSongButtonTap,
+                        ),
+                    ),
+                ],
+            ),
+            // The bottom music player dock, include progress bar, title and buttons for next/previous, pause/play/resume, loop/random.
+            bottomNavigationBar: MusicPlayerDock(
+                currentSong: _currentSong,
+                duration: _currentDuration,
+                position: _currentPosition,
+                onSeek: widget.controlsManager.handleSeek,
+
+                audioService: widget.audioService,
+                onNextSong: widget.controlsManager.gotoNextSong, 
+                onPreviousSong: widget.controlsManager.gotoPreviousSong, 
+                onPlayPauseResume: widget.controlsManager.handlePlayResumePause, 
+                onStop: widget.controlsManager.stop,
+                onToggleLoop: widget.controlsManager.toggleLoop,
+                isLooping: _isLooping,
+                onToggleRandom: widget.controlsManager.toggleRandom,
+                isRandom: _isRandom,
+            ),
+        );
     }
 
     /// Push the user to Song Detail Page
@@ -107,77 +121,113 @@ class SongScreenState extends State<SongScreen> {
                 transitionDuration: Duration(milliseconds: 200),
                 pageBuilder: (context, animation, secondaryAnimation) => SongDetailPage(
                     initialSong: song,
-                    controlsManager: _controlsManager,
+                    controlsManager: widget.controlsManager,
                     audioService: widget.audioService,
+                    isLooping: _isLooping,
+                    isRandom: _isRandom,
                     initialPosition: _currentPosition,
                     initialDuration: _currentDuration,
                 ),
                 transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                    return FadeTransition(
-                        opacity: animation,
-                        child: child,
-                    );
+                    return FadeTransition(opacity: animation, child: child);
                 },
             ),
         );
     }
+    
+    /// If not currently playing => play the song. If currently playing => go to Song detail page.
+    /// 
+    /// Check of currently playing song is done using the assetPath in the system.   
+    void _handleSongTap(Song song) {
+        // Check if this is the currently playing song by name of the playlist. 
+        final bool isSamePlaylist = SongRepository.masterSongPlaylist.playlistName == SongControlsManager.getActivePlaylist().playlistName;  
+        if (_currentSong?.assetPath == song.assetPath && widget.audioService.isPlaying && isSamePlaylist) {
+            _goToSongDetailPage(song);
+            return; 
+        } 
 
-    void _handleAddSong() async {
-        await _controlsManager.handleAddSong();
+        // Otherwise, play this song and set active list = masterSongPlaylist. 
+        widget.controlsManager.playSelectedSong(song, SongRepository.masterSongPlaylist);
     }
-    void _handlePlayResumePause() => _controlsManager.handlePlayResumePause();
-    void _handleStop() => _controlsManager.stop();
-    void _toggleLoop() => _controlsManager.toggleLoop();
-    void _handleSeek(double value) => _controlsManager.handleSeek(value);
-    void _toggleRandom() => _controlsManager.toggleRandom();
 
-    @override
-    Widget build (BuildContext context){
-        if (_isLoading) {
-            return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
-            );
-        }
-
-        return Scaffold(
-            appBar: AppBar(
-                title: const Text("MP3 Player Test Version"),
-                actions: [
-                    IconButton(
-                        icon: const Icon(Icons.add_to_photos),
-                        onPressed: _handleAddSong, 
-                        tooltip: "Add Song",
-                    ),
-                ],
-                ),
-            body: Column(
-                children: [
-                    NowPlayingDisplay(
-                        currentSong: _currentSong,
-                        duration: _currentDuration,
-                        position: _currentPosition,
-                        onSeek: _handleSeek,
-                    ),
-                    Expanded(
-                        child: SongList(
-                            songs: SongRepository.songCollection, 
-                            currentSong: _currentSong,
-                            onSongTap: _handleSongTap,
-                        ),
-                    ),
-                ],
-            ),
-            bottomNavigationBar: PlaybackControls(
-                audioService: widget.audioService,
-                onNextSong: _controlsManager.gotoNextSong,
-                onPreviousSong: _controlsManager.gotoPreviousSong,
-                onPlayPauseResume: _handlePlayResumePause,
-                onStop: _handleStop,
-                onToggleLoop: _toggleLoop,
-                isLooping: _isLooping,
-                onToggleRandom: _toggleRandom,
-                isRandom: _isRandom,
-            ),
+    /// Delete button that remove from the masterList. 
+    /// 
+    /// This is ONLY available here. 
+    void _handleSongButtonTap(Song song) async {
+        await showDialog(
+            context: context,
+            builder: (BuildContext context) {
+                return DeleteSong(playlistName: SongRepository.masterSongPlaylist.playlistName, someSong: song);
+            },
         );
+
+        SongRepository.masterSongPlaylist.updateSongCount();
+        setState(() {/* Rebuild UI */});
+    }
+    
+    /// Let user pick songs from the system file explorer. 
+    void _handleAddSong() async {
+        await widget.controlsManager.handleAddSong();
+    }
+
+    /// Let user pick 1 directory from the system file explorer. 
+    void _handleAddMusicDirectory() async {
+        await widget.controlsManager.handleAddMusicDirectory();
+    }
+
+    /// Set up listeners for stream updates
+    void _setupStreamListeners() {
+        // Progress bar position changes.
+        _positionSubscription = widget.controlsManager.onPositionChanged.listen((position) {
+            if (mounted) setState(() => _currentPosition = position);
+        });
+
+        // Progress bar total duration changes.
+        _durationSubscription = widget.audioService.onDurationChanged.listen((duration) {
+            if (mounted) setState(() => _currentDuration = duration);
+        });
+
+        // Current song changes.
+        _currentSongSubscription = widget.controlsManager.onCurrentSongChanged.listen((song) {
+            if (mounted) setState(() => _currentSong = song);
+        });
+
+        // Loop mode changes.
+        _loopSubscription = widget.controlsManager.onLoopChanged.listen((isLooping) {
+            if (mounted) setState(() =>_isLooping = isLooping);
+            
+        });
+
+        // Random mode changes.
+        _randomSubscription = widget.controlsManager.onRandomChanged.listen((isRandom) {
+            if (mounted) setState(() =>_isRandom = isRandom);
+        });
+    }
+    
+    /// Completion listener of THIS page. 
+    void _setupPlayerCompletionListener() {
+        // current 
+        _playerCompleteSubscription = widget.audioService.audioPlayer.onPlayerComplete.listen((_) {
+            widget.controlsManager.handleSongCompletion();
+        });
+    }
+
+    /// Clean up and ensure file intergrity when user navigates to this page. 
+    Future<void> _loadAndSynchronizeSongs() async {
+        setState(() { _isLoading = true; });
+        await SongRepository.loadSongs();
+        await widget.controlsManager.synchronizePlaybackState(SongRepository.masterSongPlaylist);
+        setState(() => _isLoading = false);
+    }
+    
+    @override
+    void dispose() {
+        _positionSubscription?.cancel();
+        _durationSubscription?.cancel();
+        _currentSongSubscription?.cancel();
+        _loopSubscription?.cancel();
+        _randomSubscription?.cancel();
+        _playerCompleteSubscription?.cancel();
+        super.dispose();
     }
 }

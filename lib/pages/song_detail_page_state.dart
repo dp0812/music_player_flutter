@@ -1,21 +1,15 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:music_player/pages/song_detail_page.dart';
-import 'package:music_player/ui_components/album_art.dart';
-import 'package:music_player/ui_components/playback_controls.dart';
-import 'package:music_player/ui_components/song_detail_progress_bar.dart';
-import 'package:music_player/ui_components/song_meta_data_row.dart';
-import 'package:music_player/utilities/io_print.dart';
-import 'package:music_player/utilities/misc_formatter.dart'; 
 
+import 'song_detail_page.dart';
 import '../entities/song.dart';
+import '../ui_components/album_art.dart';
+import '../ui_components/music_player_dock.dart';
+import '../ui_components/song_detail_progress_bar.dart';
+import '../ui_components/song_meta_data_row.dart';
+import '../utilities/misc_formatter.dart'; 
 
-/// Provides metadata details of the song and other things. 
-/// 
-/// Refactored to use the unified playback_controls.dart
-///  
-/// 1. Remarks A: UI of this class updates based on listener => must use notify in business logic for this class to work.  
-/// 2. Remakrs B: Metadata read is currently very inefficient. 
+/// Provides metatdata access of song, and has an exclusive progress bar. 
 class SongDetailPageState extends State<SongDetailPage> {
     late Song _displayedSong;
     late Duration _currentPosition;
@@ -29,6 +23,7 @@ class SongDetailPageState extends State<SongDetailPage> {
     StreamSubscription<Song?>? _currentSongSubscription;
     StreamSubscription<bool>? _loopSubscription;
     StreamSubscription<bool>? _randomSubscription;
+    StreamSubscription<void>? _playerCompleteSubscription;
     
     @override
     void initState() {
@@ -44,17 +39,16 @@ class SongDetailPageState extends State<SongDetailPage> {
         // Check if song has ended based on passed data
         if (_isSongEnded()) _songEnded = true;
 
-        // Sync data as usual. 
-        _loadCurrentPlaybackInfo();
         _setupListeners();
+        _setupPlayerCompletionListener();
+        _loadCurrentPlaybackInfo();
     }
 
     @override
     Widget build(BuildContext context) {
-        // To avoid the pixel overflow in the bottom:
-        // set resizeToAvoidBottomInset = false and wrap the body in SingleChildScrollView with ConstrainedBox 
         return Scaffold(
             resizeToAvoidBottomInset: false,
+            // Purely for the 2 buttons (go back and info)
             appBar: AppBar(
                 leading: IconButton(
                     icon: Icon(Icons.arrow_back),
@@ -68,15 +62,14 @@ class SongDetailPageState extends State<SongDetailPage> {
                     ),
                 ],
             ),
-            body: SingleChildScrollView(
-                child: ConstrainedBox(
+            body: ConstrainedBox(
                     constraints: BoxConstraints(
                         maxHeight: MediaQuery.of(context).size.height,
                     ),
                     child: Column(
                         children: [
                             // Album Art Section 
-                            Spacer(),
+                            SizedBox(height: 50),
                             AlbumArt(albumArtBytes: _displayedSong.albumArtBytes),
                             // Song Info Section.
                             _buildSongInfo(context),
@@ -86,8 +79,14 @@ class SongDetailPageState extends State<SongDetailPage> {
                         ],
                     ),
                 ),
-            ),
-            bottomNavigationBar: PlaybackControls(
+            // The bottom music player dock, include progress bar, title and buttons for next/previous, pause/play/resume, loop/random.
+            bottomNavigationBar: MusicPlayerDock(
+                isDisplayProgressBar: false,
+                currentSong: _displayedSong,
+                duration: _currentDuration,
+                position: _currentPosition,
+                onSeek: _handleSeek,
+
                 audioService: widget.audioService,
                 onPreviousSong: widget.controlsManager.gotoPreviousSong,
                 onNextSong: widget.controlsManager.gotoNextSong,
@@ -101,7 +100,7 @@ class SongDetailPageState extends State<SongDetailPage> {
         );
     }
 
-    /// Provide display of [_displayedSong.title] and [_displaySong.artist]
+    /// Provide display of [_displayedSong.title] and [_displayedSong.artist]
     Widget _buildSongInfo(BuildContext context){
         return Padding(
             padding: EdgeInsets.all(20),
@@ -150,14 +149,8 @@ class SongDetailPageState extends State<SongDetailPage> {
         );
     }
 
+    /// Let user see the metadata when clicking the info button (top right corner, on the app bar).
     void _showSongMetadata() {
-        // Show dialog with song metadata
-        IO.d("Song data in Meta data: ");
-        IO.t("Song title: ${_displayedSong.title} ");
-        IO.t("Song artist: ${_displayedSong.artist} ");
-        IO.t("Song album: ${_displayedSong.album} ");
-        IO.t("Song filePath: ${_displayedSong.assetPath} ");
-        
         showDialog(
             context: context,
             builder: (context) => AlertDialog(
@@ -192,8 +185,6 @@ class SongDetailPageState extends State<SongDetailPage> {
     }
 
     /// Get current Position (from the previous - parent widget). 
-    /// 
-    /// This parent widget, currently, should be either PlaylistDetailPageState or SongScreenState
     void _loadCurrentPlaybackInfo() async {
         final position = await widget.audioService.getCurrentPosition();
         final duration = await widget.audioService.getCurrentDuration();
@@ -208,32 +199,25 @@ class SongDetailPageState extends State<SongDetailPage> {
 
     /// Listen to changes in the position of the song, and reset UI accordingly. 
     /// 
-    /// The only update that come directly from audioService is [onDurationChanged] - the total time length of a Song 
+    /// The only update that come directly from audioService is [onDurationChanged] - the total time length of a Song.
     /// The user cannot affect this attribute by any of the buttons provided. 
     void _setupListeners() {
-        // Listen to position updates
+        // Progress bar position changes.
         _positionSubscription = widget.controlsManager.onPositionChanged.listen((position) {
             if (mounted) {
                 setState(() {
                     _currentPosition = position;
-                    // Check if we're at the end of the song
-                    if (_isSongEnded()) {
-                        _songEnded = true;
-                    } else {
-                        _songEnded = false;
-                    }
+                    _songEnded = _isSongEnded();
                 });
             }
         });
 
-        // Listen to duration updates
+        // Progress bar total duration changes.
         _durationSubscription = widget.audioService.onDurationChanged.listen((duration) {
-            if (mounted) {
-                setState(() {_currentDuration = duration;});
-            }
+            if (mounted) setState(() => _currentDuration = duration);
         });
 
-        // Listen to current song updates
+        // Current song changes.
         _currentSongSubscription = widget.controlsManager.onCurrentSongChanged.listen((song) {
             if (song != null && mounted) {
                 setState(() {
@@ -243,20 +227,14 @@ class SongDetailPageState extends State<SongDetailPage> {
             }
         });
 
+        // Loop mode changes.
         _loopSubscription = widget.controlsManager.onLoopChanged.listen((isLooping) {
-            if (mounted) {
-                setState(() {
-                    _isLooping = isLooping;
-                });
-            }
+            if (mounted) setState(() => _isLooping = isLooping);
         });
 
+        // Random mode changes.
         _randomSubscription = widget.controlsManager.onRandomChanged.listen((isRandom){
-            if (mounted){
-                setState(() {
-                    _isRandom = isRandom; 
-                });
-            }
+            if (mounted) setState(() =>_isRandom = isRandom);
         });
     }
 
@@ -270,6 +248,14 @@ class SongDetailPageState extends State<SongDetailPage> {
         return widget.controlsManager.getSongEnded;
     }
 
+    /// Completion listener of THIS page. 
+    void _setupPlayerCompletionListener() {
+        // current 
+        _playerCompleteSubscription = widget.audioService.audioPlayer.onPlayerComplete.listen((_) {
+            widget.controlsManager.handleSongCompletion();
+        });
+    }
+
     @override
     void dispose() {
         _positionSubscription?.cancel();
@@ -277,6 +263,7 @@ class SongDetailPageState extends State<SongDetailPage> {
         _currentSongSubscription?.cancel();
         _loopSubscription?.cancel();
         _randomSubscription?.cancel();
+        _playerCompleteSubscription?.cancel();        
         super.dispose();
     }
 }

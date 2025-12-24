@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:music_player/entities/song.dart';
-import 'package:music_player/ui_components/now_playing_display.dart';
+
+import '../entities/song.dart';
+import '../ui_components/now_playing_display.dart';
 
 /// Provide more UI tweaks instead of the normal progress bar
 /// 
@@ -52,12 +53,9 @@ class SongDetailProgressBar extends StatelessWidget {
         final displayPosition = songEnded ? Duration.zero : currentPosition;
         return Column(
             children: [
-                // Status indicator (specific to SongDetailPage)
-                _buildNowPlayingIndicator(),
                 SizedBox(height: 12),
                 Stack(
                     children: [
-                        // Cut last [preventDuration] ms due to bug problem. 
                         NowPlayingDisplay(
                             currentSong: displayedSong,
                             duration: currentDuration,
@@ -74,34 +72,5 @@ class SongDetailProgressBar extends StatelessWidget {
                 
             ],
         );
-    }
-
-    Widget _buildNowPlayingIndicator() {
-        if (isDisplayedSongPlaying) {
-            return Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                    color: nowPlayingColorBackground,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: nowPlayingColorDetail),
-                ),
-                child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                        Icon(Icons.music_note, size: 16, color: nowPlayingColorDetail),
-                        SizedBox(width: 6),
-                        Text(
-                            "Now Playing",
-                            style: TextStyle(
-                                color: nowPlayingColorText,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                            ),
-                        ),
-                    ],
-                ),
-            );
-        }
-        return SizedBox.shrink();
     }
 }

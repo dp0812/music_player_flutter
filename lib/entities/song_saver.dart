@@ -3,12 +3,15 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-import 'package:music_player/entities/song.dart';
-import 'package:music_player/utilities/io_print.dart';
+import '../entities/song.dart';
+import '../utilities/io_print.dart';
 
 /// This class is responsible for saving to file and loading from file, statically. 
 class SongSaver {
+    static const String _applicationFolderName = "DP_MP3_Player"; 
     static const String _masterFileName = "masterList.txt";
+    /// External accessor to just the name of masterList.txt (no extension)
+    static const String masterFileNameExt = "masterList";
     /// For every functions that intends to write anything to file, you MUST use this system separator. DO NOT USE '\n'
     static String separator = Platform.lineTerminator;
     static File? _masterFile;
@@ -18,23 +21,25 @@ class SongSaver {
     /// Will create a file with [playlistName] as name, replacing spaces with underscores. 
     /// Write all path of Song objects in [songs] to this file, separated by the separator (system dependent). 
     /// 
-    /// If [songs] is empty, write an empty String to the file. 
-    /// [playlistName] MUST not have any file extension. 
-    /// [songs] MUST contain only valid songs - with no corrupted paths. 
+    /// 1. If [songs] is empty, write an empty String to the file. 
+    /// 2. [playlistName] MUST NOT have any file extension, and MUST NOT contain any invalid symbols (i). 
+    /// 3. [songs] MUST contain only valid songs - with no corrupted paths. 
+    /// 4. Remarks: This design is intentional - since we save it here by replacing spaces with underscores, when read with [listPlaylistNames], it is reasonable to do the inverse, that is, replacing underscores with spaces. 
     static Future<void> savePlaylist({required String playlistName, List<Song>? songs}) async {
         try {
             final file = await getPlaylistFile(playlistName: playlistName);
             final paths = songs?.map((song) => song.assetPath).toList() ?? [];
-            final content = paths.join(separator) + (paths.isNotEmpty ? separator : ''); //How tf do I not remember this? USE THE FUCKING SEPARATOR.
+            final content = paths.join(separator) + (paths.isNotEmpty ? separator : '');
             await file.writeAsString(content);
-            IO.i("Saved playlist '$playlistName' with ${paths.length} songs");
+            IO.t("Saved playlist '$playlistName' with ${paths.length} songs");
         } catch (e) {
             IO.e("Error saving playlist: ", error: e);
         }
     }
 
-    /// Create the [playlistName] file if it doesn't exist and write the assetPath of [songObject] on a new line.
+    /// If caller supply [playlistName], create the [playlistName] file if it doesn't exist and write the assetPath of [songObject] on a new line.
     /// 
+    /// If caller does not supply [playlistName], proceed to write this song to the [_masterFileName].
     /// Check for duplications before writing. If [songObject].assetPath already exists in the [playlistName] file, this song is skipped. 
     /// Each assetPath is seperated by the separator (system dependent).  
     static Future<void> saveSongPath(Song songObject, {String? playlistName}) async {
@@ -59,9 +64,10 @@ class SongSaver {
         }
     }
 
-    /// Provide a list of playlist Name currently saved in the application directory. 
+    /// Provide a list of [playlistName] currently saved in the application directory. 
     /// 
-    /// If only the masterList.txt and no other playlist.txt is in the application directory, this function return an empty list. 
+    /// If only the [_masterFileName] and no other [playlistName].txt is in the application directory, this function return an empty list.
+    /// Remarks: When we save the file under some [playlistName] using [savePlaylist], we replace all spaces with underscores, so when we read, we perform the inverse. 
     static Future<List<String>> listPlaylistNames() async {
         try {
             String musicDirPath = await _createMusicDir();
@@ -89,7 +95,7 @@ class SongSaver {
         }
     }
 
-    /// Load paths that are available in the playlist [playlistName] 
+    /// Load paths that are available in the playlist [playlistName].
     /// 
     /// If this file does not exists, return an empty list.
     /// The behavior of the method is identical for a playlist that exists but contain nothing, and a playlist that does not exist.  
@@ -141,8 +147,7 @@ class SongSaver {
         }
     }
 
-    /// Lazily initializes and returns the File object for the master list, 
-    /// using a persistent, writable directory (Application Documents).
+    /// Return the File object for the [_masterFileName].
     static Future<File> getMasterFile() async {
         if (_masterFile == null) {
             String musicDirPath = await _createMusicDir();
@@ -155,16 +160,15 @@ class SongSaver {
         return _masterFile!;
     }
 
-    /// Return a playlist file in the application directory, using [playlistName]
+    /// Return a playlist file in the application directory, using [playlistName].
     /// 
-    /// Name of the file is [playlistName] but replacing all spaces with underscores
+    /// Name of the file is [playlistName] but replacing all spaces with underscores.
     static Future<File> getPlaylistFile({required String playlistName}) async {
         String musicDirPath = await _createMusicDir();
-        // Remove all space, instead use _ This prevent linux system from adding '' to both side. 
+        // Remove all space, instead use _ 
         final String formattedName = "${playlistName.replaceAll(' ', '_')}.txt"; 
         final String fullPath = p.join(musicDirPath,formattedName);
         File playlistFile = File(fullPath);
-        // IO.i("Playlist $playlistName path: $fullPath"); // Uncomment this line if you want to see the path - note, this will be overwhelming. 
         return playlistFile; 
     }
     
@@ -174,7 +178,7 @@ class SongSaver {
     static Future<String> _createMusicDir() async{
         
         final Directory directory = await getApplicationDocumentsDirectory();
-        final String musicDirPath = p.join(directory.path, 'DP_MP3_Player');
+        final String musicDirPath = p.join(directory.path, _applicationFolderName);
         final Directory musicDir = Directory(musicDirPath);
 
         if (!await musicDir.exists()) {
