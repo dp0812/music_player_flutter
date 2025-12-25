@@ -4,7 +4,6 @@ import 'playlist_page.dart';
 import 'song_screen.dart';
 import 'welcome_page.dart';
 import '../entities/audio_player_service.dart'; 
-import '../entities/song.dart'; 
 import '../entities/song_controls_manager.dart'; 
 
 /// Let user switch between different sections of the app, using the navigation rails. 
@@ -19,14 +18,7 @@ class WelcomePageState extends State<WelcomePage> {
     // Unified audio and controls across all pages of the app to ensure song persists. 
     late final AudioPlayerService audioService;
     late SongControlsManager _controlsManager;
-    
-    // Audio state attribute that will be shared across all pages
-    Song? _currentSong;
-    bool _isLooping = false;
-    bool _isRandom = false;
-    Duration _currentDuration = Duration.zero;
-    Duration _currentPosition = Duration.zero;
-    
+
     @override
     void initState() {
         super.initState();
@@ -36,24 +28,6 @@ class WelcomePageState extends State<WelcomePage> {
         _controlsManager = SongControlsManager(
             audioService: audioService,
             context: context,
-
-            getCurrentSong: () => _currentSong,
-            getIsLooping: () => _isLooping,
-            getIsRandom: () => _isRandom,
-
-            setCurrentSong: (song) => setState(() => _currentSong = song),
-            setIsLooping: (isLooping) => setState(() => _isLooping = isLooping),
-            setIsRandom: (isRandom) => setState(() => _isRandom = isRandom),
-            resetPlaybackState: () {
-                setState(() {
-                    _currentSong = null;
-                    _currentDuration = Duration.zero;
-                    _currentPosition = Duration.zero;
-                });
-            },
-            setCurrentPosition: (position) => setState(() => _currentPosition = position),
-            setCurrentDuration: (duration) => setState(() => _currentDuration = duration),
-            notifySongListChanged: () => setState(() { /* Trigger rebuild */ }),
         );
     }
     
@@ -114,21 +88,21 @@ class WelcomePageState extends State<WelcomePage> {
                 return SongScreen(
                     audioService: audioService,
                     controlsManager: _controlsManager,
-                    currentSong: _currentSong,
-                    isLooping: _isLooping,
-                    isRandom: _isRandom,
-                    currentDuration: _currentDuration,
-                    currentPosition: _currentPosition,
+                    currentSong: _controlsManager.currentSong,
+                    isLooping: _controlsManager.isLooping,
+                    isRandom: _controlsManager.isRandom,
+                    currentDuration: _controlsManager.currentDuration,
+                    currentPosition: _controlsManager.currentPosition,
                 );
             case 1: 
                 return PlaylistPage(
                     audioService: audioService,
                     controlsManager: _controlsManager,
-                    currentSong: _currentSong,
-                    isLooping: _isLooping,
-                    isRandom: _isRandom,
-                    currentDuration: _currentDuration,
-                    currentPosition: _currentPosition,
+                    currentSong: _controlsManager.currentSong,
+                    isLooping: _controlsManager.isLooping,
+                    isRandom: _controlsManager.isRandom,
+                    currentDuration: _controlsManager.currentDuration,
+                    currentPosition: _controlsManager.currentPosition,
                 );
             default: 
                 return const SizedBox(); // This should NOT happen. Like ever. 
@@ -137,8 +111,8 @@ class WelcomePageState extends State<WelcomePage> {
 
     @override
     void dispose() {
-        _controlsManager.cancelAudioStreams();
-        audioService.stop();
+        _controlsManager.cancelAudioStreamsAndSubscriptions();
+        audioService.dispose();
         super.dispose();
     }
 }

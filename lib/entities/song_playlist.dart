@@ -23,7 +23,7 @@ class SongsPlaylist {
     /// If song already exist, this function does nothing and returns false.
     /// Otherwise increment number of song in playlist and returns true.  
     bool addSong(Song newSong){
-        if (isSongInPlaylist(newSong)) return false; 
+        if (_isSongInPlaylist(newSong)) return false; 
         _currentPlaylist.add(newSong);
         // save to file. 
         SongSaver.saveSongPath(newSong, playlistName: playlistName);
@@ -32,14 +32,12 @@ class SongsPlaylist {
     }
 
     /// Returns true if path of the given Song object already exists in the list. 
-    bool isSongInPlaylist(Song someSong){
+    bool _isSongInPlaylist(Song someSong){
         return _currentPlaylist.any((song) => song.assetPath == someSong.assetPath);
     }
 
     /// Returns the list of Songs an instance holds. 
-    List<Song> getCurrentPlaylistSongs (){
-        return _currentPlaylist;
-    }
+    List<Song> getCurrentPlaylistSongs () => _currentPlaylist;
 
     /// Update songCount of this instance.
     void updateSongCount() {
@@ -66,7 +64,7 @@ class SongsPlaylist {
     bool addAll(List<Song> newSongs){
         bool updated = false; 
         for (Song someSong in newSongs){
-            if (!isSongInPlaylist(someSong)){
+            if (!_isSongInPlaylist(someSong)){
                 _currentPlaylist.add(someSong);
                 updated = true;
             }  
@@ -76,7 +74,6 @@ class SongsPlaylist {
     }
 
     /// Invoke .clear() on the current List of Song(s).
-    void clearSongs(){
-        _currentPlaylist.clear();
-    }
+    void clearSongs() => _currentPlaylist.clear();
+    
 }

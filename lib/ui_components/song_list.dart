@@ -6,13 +6,13 @@ import '../entities/song_playlist.dart';
 
 /// Display the current list of Song objects. 
 /// 
-/// This widget is built to be used when user wants to see what the Songs inside some container. 
+/// This widget is built to be used when user wants to see what the Songs inside some pages. 
 /// Highlight the song being play under certain conditions. 
 class SongList extends StatelessWidget {
     /// Use for both data display and highlight check. 
     final SongsPlaylist currentPlaylist; 
     final Song? currentSong;
-    /// Callback function to do something with the tapped tile. 
+    /// Callback function to play the tapped song.  
     final Function(Song) onSongTap;
     /// Optional callback function for the trailing button. 
     final Function(Song)? onSongButtonTap;
@@ -31,7 +31,7 @@ class SongList extends StatelessWidget {
     @override
     Widget build(BuildContext context) {
         // The name of the playlist are guaranteed to be unique => use as our identifier. 
-        final bool isSamePlaylist = (currentPlaylist.playlistName == SongControlsManager.getActivePlaylist().playlistName);
+        final bool isSamePlaylist = (currentPlaylist.playlistName == SongControlsManager.activeSongsPlaylist.playlistName);
         return ListView.builder(
             itemCount: currentPlaylist.getCurrentPlaylistSongs().length,
             itemBuilder: (context, index) {

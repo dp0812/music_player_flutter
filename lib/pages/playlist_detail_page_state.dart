@@ -15,45 +15,19 @@ import '../utilities/io_print.dart';
 
 /// Provides a list view of the current songs in the playlist alongside with the playback controls dock and the progress bar.
 class PlaylistDetailPageState extends State<PlaylistDetailPage> {
-    
-    // Local state for playback (not using widget properties directly)
-    Song? _currentSong;
-    bool _isLooping = false;
-    bool _isRandom = false;
-    Duration _currentDuration = Duration.zero;
-    Duration _currentPosition = Duration.zero;
 
     // Load flag for UI purpose. 
     bool _isLoading = true;
     bool _isReloading = false;
 
-    // Stream subscriptions for listening to playback updates
-    StreamSubscription<Duration>? _positionSubscription;
-    StreamSubscription<Duration>? _durationSubscription;
-    StreamSubscription<Song?>? _currentSongSubscription;
-    StreamSubscription<bool>? _loopSubscription;
-    StreamSubscription<bool>? _randomSubscription;
-    StreamSubscription<void>? _playerCompleteSubscription;
-
     @override
     void initState() {
         super.initState();
-        
-        // Initialize local state from widget properties
-        _currentSong = widget.currentSong;
-        _isLooping = widget.isLooping;
-        _isRandom = widget.isRandom;
-        _currentDuration = widget.currentDuration;
-        _currentPosition = widget.currentPosition;
-        
-        // Set up listeners for playback state changes
-        _setupStreamListeners();
-        _setupPlayerCompletionListener();
         // Ensure intergrity of the playlist when we go to this page. 
         _loadAndSynchronizeSongs();
     }
 
-    @override
+     @override
     Widget build(BuildContext context){
         // Placeholder loading screen. 
         if (_isLoading) {
@@ -62,47 +36,53 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
             );
         }
 
-        return Scaffold(
-            appBar: AppBar(
-                title: Text(widget.playlist.playlistName),
-                actions: [
-                    IconButton(
-                        icon: const Icon(Icons.add_to_photos),
-                        onPressed: _handleAddSong,
-                        tooltip: "Add Song",
+        // Rebuild when controlsManager changes.
+        return ListenableBuilder(
+            listenable: widget.controlsManager,
+            builder: (context, child) {
+                return Scaffold(
+                    appBar: AppBar(
+                        title: Text(widget.playlist.playlistName),
+                        actions: [
+                            IconButton(
+                                icon: const Icon(Icons.add_to_photos),
+                                onPressed: _handleAddSong,
+                                tooltip: "Add Song",
+                            ),
+                        ],
                     ),
-                ],
-            ),
-            body: Column(
-                children: [
-                    // List of all current Song(s)
-                    Expanded(
-                        child: SongList(
-                            currentPlaylist: widget.playlist,
-                            currentSong: _currentSong,
-                            onSongTap: _handleSongTap,
-                            onSongButtonTap: _handleSongButtonTap, 
-                        ),
+                    body: Column(
+                        children: [
+                            // List of all current Song(s).
+                            Expanded(
+                                child: SongList(
+                                    currentPlaylist: widget.playlist,
+                                    currentSong: widget.controlsManager.currentSong,
+                                    onSongTap: _handleSongTap,
+                                    onSongButtonTap: _handleSongButtonTap, 
+                                ),
+                            ),
+                        ],
                     ),
-                ],
-            ),
-            // The bottom music player dock, include progress bar, title and buttons for next/previous, pause/play/resume, loop/random.
-            bottomNavigationBar: MusicPlayerDock(
-                currentSong: _currentSong,
-                duration: _currentDuration,
-                position: _currentPosition,
-                onSeek: widget.controlsManager.handleSeek,
-                
-                audioService: widget.audioService,
-                onNextSong: widget.controlsManager.gotoNextSong, 
-                onPreviousSong: widget.controlsManager.gotoPreviousSong, 
-                onPlayPauseResume: widget.controlsManager.handlePlayResumePause, 
-                onStop: widget.controlsManager.stop,
-                onToggleLoop: widget.controlsManager.toggleLoop,
-                isLooping: _isLooping,
-                onToggleRandom: widget.controlsManager.toggleRandom,
-                isRandom: _isRandom,
-            ),
+                    // The bottom music player dock, include progress bar, title and buttons for next/previous, pause/play/resume, loop/random.
+                    bottomNavigationBar: MusicPlayerDock(
+                        currentSong: widget.controlsManager.currentSong,
+                        duration: widget.controlsManager.currentDuration,
+                        position: widget.controlsManager.currentPosition,
+                        onSeek: widget.controlsManager.handleSeek,
+                        
+                        audioService: widget.audioService,
+                        onNextSong: widget.controlsManager.gotoNextSong, 
+                        onPreviousSong: widget.controlsManager.gotoPreviousSong, 
+                        onPlayPauseResume: widget.controlsManager.handlePlayResumePause, 
+                        onStop: widget.controlsManager.stop,
+                        onToggleLoop: widget.controlsManager.toggleLoop,
+                        isLooping: widget.controlsManager.isLooping,
+                        onToggleRandom: widget.controlsManager.toggleRandom,
+                        isRandom: widget.controlsManager.isRandom,
+                    ),
+                );
+            },
         );
     }
 
@@ -118,10 +98,10 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
                     initialSong: song,
                     controlsManager: widget.controlsManager,
                     audioService: widget.audioService,
-                    isLooping: _isLooping,
-                    isRandom: _isRandom,
-                    initialPosition: _currentPosition,
-                    initialDuration: _currentDuration,
+                    isLooping: widget.controlsManager.isLooping,
+                    isRandom: widget.controlsManager.isRandom,
+                    initialPosition: widget.controlsManager.currentPosition,
+                    initialDuration: widget.controlsManager.currentDuration,
                 ),
                 transitionsBuilder: (context, animation, secondaryAnimation, child) {
                     return FadeTransition(
@@ -153,8 +133,8 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
     /// Check of currently playing song is done using the assetPath in the system.   
     void _handleSongTap(Song song) {
         // Check if this is the currently playing song
-        final bool isSamePlaylist = widget.playlist.playlistName == SongControlsManager.getActivePlaylist().playlistName;  
-        if (_currentSong?.assetPath == song.assetPath && widget.audioService.isPlaying && isSamePlaylist) {
+        final bool isSamePlaylist = widget.playlist.playlistName == SongControlsManager.activeSongsPlaylist.playlistName;  
+        if (widget.controlsManager.currentSong?.assetPath == song.assetPath && widget.audioService.isPlaying && isSamePlaylist) {
             _goToSongDetailPage(song);
             return;
         } 
@@ -166,7 +146,7 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
 
     /// Deleting a song from a playlist.
     /// 
-    /// Only remove said song from the current playlist, not the masterList.txt
+    /// Only remove said song from the current playlist, not from the [SongRepository.masterSongPlaylist]. 
     void _handleSongButtonTap(Song song) async {
         await showDialog(
             context: context,
@@ -177,42 +157,6 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
 
         widget.playlist.updateSongCount();
         setState(() {/* Rebuild UI */});
-    }
-
-    /// Refresh UI of progress bar and playback controls dock based on listener.
-    void _setupStreamListeners() {
-        // Progress bar position changes.
-        _positionSubscription = widget.controlsManager.onPositionChanged.listen((position) {
-            if (mounted) setState(() => _currentPosition = position);
-        });
-
-        // Progress bar total duration changes.
-        _durationSubscription = widget.audioService.onDurationChanged.listen((duration) {
-            if (mounted) setState(() => _currentDuration = duration);
-        });
-
-        // Current song changes.
-        _currentSongSubscription = widget.controlsManager.onCurrentSongChanged.listen((song) {
-            if (mounted) setState(() => _currentSong = song);
-        });
-
-        // Loop mode changes.
-        _loopSubscription = widget.controlsManager.onLoopChanged.listen((isLooping) {
-            if (mounted) setState(() =>_isLooping = isLooping);
-        });
-
-        // Random mode changes.
-        _randomSubscription = widget.controlsManager.onRandomChanged.listen((isRandom) {
-            if (mounted) setState(() =>_isRandom = isRandom);
-        });
-    }
-    
-    /// Completion listener of THIS page. 
-    void _setupPlayerCompletionListener() {
-        // current 
-        _playerCompleteSubscription = widget.audioService.audioPlayer.onPlayerComplete.listen((_) {
-            widget.controlsManager.handleSongCompletion();
-        });
     }
 
     /// Load available songs and synchronize playback state. 
@@ -269,12 +213,6 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
 
     @override
     void dispose() {
-        _positionSubscription?.cancel();
-        _durationSubscription?.cancel();
-        _currentSongSubscription?.cancel();
-        _loopSubscription?.cancel();
-        _randomSubscription?.cancel();
-        _playerCompleteSubscription?.cancel();
         super.dispose();
     }
 }
