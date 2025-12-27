@@ -21,6 +21,8 @@ class NowPlayingDisplay extends StatelessWidget {
 
     final bool isExpanded; 
     final VoidCallback? onToggleExpanded; 
+    /// Clicking on the icon in expanded mode allow the user to go to the Song Detail Page of current Song. 
+    final void Function(Song song)? pushToDetail;
 
     /// This is for the Song Title. 
     static const double boxWidth = 100; 
@@ -37,6 +39,7 @@ class NowPlayingDisplay extends StatelessWidget {
         this.preventDuration = 50,
         this.isExpanded = false,
         this.onToggleExpanded,
+        this.pushToDetail,
     });
 
 
@@ -119,16 +122,51 @@ class NowPlayingDisplay extends StatelessWidget {
             onTap: onToggleExpanded,
             child: Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
-                child: Text(
-                    currentSong?.title ?? "Not Playing Anything",
-                    style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 3,
-                ),
+                child: _titleRow(),
             ),
+        );
+    }
+
+    Widget _titleRow(){
+        return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+                // This is just to even out the other button at the end. 
+                Expanded(
+                    flex: 1,
+                    child: Container(),
+                ),
+                // Song title. 
+                Expanded(
+                    flex: 4,
+                    child: 
+                        Text(
+                            currentSong?.title ?? "Not Playing Anything",
+                            style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                            maxLines: 3,  
+                            overflow: TextOverflow.ellipsis, 
+                        ),
+                ),
+                // Button that leads to Song Detail Page State. 
+                Expanded(
+                    flex: 1, 
+                    child: Align(
+                        alignment: Alignment.centerRight,
+                        child: GestureDetector(
+                            child:Icon(Icons.settings),
+                            // If provided and currentSong != null, push the user to the Song Detail Page State of the currentSong. 
+                            onTap:() {
+                                if (currentSong != null && pushToDetail != null) pushToDetail!(currentSong!);
+                            }, 
+                        ) 
+                        
+                    ),
+                ),
+            ],
         );
     }
 

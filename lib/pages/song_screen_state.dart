@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:music_player/entities/song_search_delegate.dart';
 import 'package:music_player/ui_components/delete_song.dart';
 
 import 'song_detail_page.dart';
@@ -35,6 +36,14 @@ class SongScreenState extends State<SongScreen> {
                 return Scaffold(
                     appBar: AppBar(
                         title: const Text("Home"),
+                        // Search song button. 
+                        actions: [
+                            ElevatedButton.icon(
+                                onPressed: _searchSong,
+                                icon: const Icon(Icons.search), 
+                                label: const Text("Search")
+                            ),
+                        ],
                     ),
                     body: Stack(
                         children: [
@@ -106,7 +115,9 @@ class SongScreenState extends State<SongScreen> {
                 duration: widget.controlsManager.currentDuration,
                 position: widget.controlsManager.currentPosition,
                 onSeek: widget.controlsManager.handleSeek,
-                
+                // working. 
+                // pushToDetail: _handleSongTap, 
+                pushToDetail: widget.controlsManager.pushToSongDetailPage,
                 audioService: widget.audioService,
                 onNextSong: widget.controlsManager.gotoNextSong, 
                 onPreviousSong: widget.controlsManager.gotoPreviousSong, 
@@ -166,7 +177,11 @@ class SongScreenState extends State<SongScreen> {
         await showDialog(
             context: context,
             builder: (BuildContext context) {
-                return DeleteSong(playlistName: SongRepository.masterSongPlaylist.playlistName, someSong: song);
+                return DeleteSong(
+                    playlistName: SongRepository.masterSongPlaylist.playlistName, 
+                    someSong: song,
+                    isMaster: true,
+                );
             },
         );
 
@@ -182,6 +197,16 @@ class SongScreenState extends State<SongScreen> {
     /// Let user pick 1 directory from the system file explorer. 
     void _handleAddMusicDirectory() async {
         await widget.controlsManager.handleAddMusicDirectory();
+    }
+
+    /// Search the list of song, to interact with the song searched, one at a time. 
+    void _searchSong(){
+        showSearch(
+            context: context, 
+            delegate: SongSearchDelegate(
+                availableSongs: SongRepository.masterSongPlaylist.getCurrentPlaylistSongs(),
+                onSongTap: _handleSongTap),
+        );
     }
 
     /// Clean up and ensure file intergrity when user navigates to this page. 

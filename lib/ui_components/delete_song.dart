@@ -7,13 +7,16 @@ import '../entities/song_repository.dart';
 class DeleteSong extends StatelessWidget{
     final String playlistName; 
     final Song someSong; 
-    const DeleteSong({super.key, required this.playlistName, required this.someSong});
+    final bool isMaster;
+    const DeleteSong({super.key, required this.playlistName, required this.someSong, this.isMaster = false});
     
     @override
     Widget build(BuildContext context) {
         return AlertDialog(
             title: Text("Delete song : ${someSong.title}"),
-            content: Text("Are you sure you want to remove this from playlist?"),
+            content: isMaster 
+                ? Text("Are you sure you want to remove this from the master list? Reminder: It will also be removed from all playlists.")
+                : Text("Are you sure you want to remove this from playlist?"),
             actions: [
                 TextButton(
                     onPressed: ()  { 

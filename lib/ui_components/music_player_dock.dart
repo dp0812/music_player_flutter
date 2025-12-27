@@ -26,6 +26,8 @@ class MusicPlayerDock extends StatefulWidget{
     final bool preventLastDuration; 
     /// Default prevention duration is 50 ms. 
     final int preventDuration;
+    /// Clicking on the icon in expanded mode allow the user to go to the Song Detail Page of current Song. 
+    final void Function(Song song)? pushToDetail; 
     
     // Control buttons. 
     final AudioPlayerService audioService;
@@ -42,7 +44,7 @@ class MusicPlayerDock extends StatefulWidget{
     /// Control buttons loop, previous, play/pause/resume, next, random (in this exact order). 
     const MusicPlayerDock({
         super.key,
-        // Progress bar. 
+        // Top half: Expandable progress bar. 
         this.isDisplayProgressBar = true, 
         required this.currentSong,
         required this.duration,
@@ -51,7 +53,8 @@ class MusicPlayerDock extends StatefulWidget{
         this.showTitle = true,
         this.preventLastDuration = false,
         this.preventDuration = 50,
-        // Control buttons. 
+        this.pushToDetail, 
+        // Bottom half: Control buttons. 
         required this.audioService,
         required this.onPreviousSong,
         required this.onPlayPauseResume,
@@ -71,12 +74,12 @@ class MusicPlayerDockState extends State<MusicPlayerDock> {
     /// Mode of top half of the dock. 
     bool _isExpanded = false; 
 
-    // Button size constraints
+    // Button size constraints.
     static const double _minButtonSize = 48.0;
     static const double _maxButtonSize = 64.0;
     static const double _minMainButtonSize = 50.0;
     static const double _maxMainButtonSize = 68.0;
-    // Size ratios
+    // Size ratios.
     static const double _buttonToIconRatio = 0.5;  
     static const double _buttonToSpaceRatio = 0.20; 
     static const double _mainButtonToSpaceRatio = 0.25; 
@@ -130,7 +133,7 @@ class MusicPlayerDockState extends State<MusicPlayerDock> {
         );
     }
 
-    /// Build the progress bar, song title and timer (if enabled) 
+    /// Build the progress bar, song title and timer (if enabled). 
     Widget _buildProgressBarSlider(){
         return NowPlayingDisplay(
             currentSong: widget.currentSong, 
@@ -139,6 +142,7 @@ class MusicPlayerDockState extends State<MusicPlayerDock> {
             onSeek: widget.onSeek,
             isExpanded: _isExpanded,
             onToggleExpanded: _toggleExpanded,
+            pushToDetail: widget.pushToDetail,
         );
     }
 

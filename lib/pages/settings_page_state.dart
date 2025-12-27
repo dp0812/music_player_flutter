@@ -77,6 +77,7 @@ class SettingsPageState extends State<SettingsPage>{
                 duration: widget.controlsManager.currentDuration,
                 position: widget.controlsManager.currentPosition,
                 onSeek: widget.controlsManager.handleSeek,
+                pushToDetail: widget.controlsManager.pushToSongDetailPage,
                 
                 audioService: widget.audioService,
                 onNextSong: widget.controlsManager.gotoNextSong, 

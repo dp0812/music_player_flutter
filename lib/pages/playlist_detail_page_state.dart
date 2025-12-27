@@ -7,6 +7,7 @@ import '../entities/song_controls_manager.dart';
 import '../entities/song.dart';
 import '../entities/song_repository.dart';
 import '../entities/song_saver.dart';
+import '../entities/song_search_delegate.dart';
 import '../ui_components/music_player_dock.dart';
 import '../ui_components/song_list.dart';
 import '../ui_components/delete_song.dart';
@@ -43,7 +44,14 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
                 return Scaffold(
                     appBar: AppBar(
                         title: Text(widget.playlist.playlistName),
-                        actions: [ // Add song button. 
+                        actions: [
+                            // Search song button. 
+                            ElevatedButton.icon(
+                                onPressed: _searchSong,
+                                icon: const Icon(Icons.search), 
+                                label: const Text("Search")
+                            ),
+                            // Add song button. 
                             IconButton(
                                 icon: const Icon(Icons.add_to_photos),
                                 onPressed: _handleAddSong,
@@ -96,6 +104,7 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
                 duration: widget.controlsManager.currentDuration,
                 position: widget.controlsManager.currentPosition,
                 onSeek: widget.controlsManager.handleSeek,
+                pushToDetail: widget.controlsManager.pushToSongDetailPage,
                 
                 audioService: widget.audioService,
                 onNextSong: widget.controlsManager.gotoNextSong, 
@@ -181,6 +190,16 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
 
         widget.playlist.updateSongCount();
         setState(() {/* Rebuild UI */});
+    }
+
+    /// Search the list of song, to interact with the song searched, one at a time. 
+    void _searchSong(){
+        showSearch(
+            context: context, 
+            delegate: SongSearchDelegate(
+                availableSongs: widget.playlist.getCurrentPlaylistSongs(),
+                onSongTap: _handleSongTap),
+        );
     }
 
     /// Load available songs and synchronize playback state. 

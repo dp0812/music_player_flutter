@@ -7,6 +7,7 @@ import 'audio_player_service.dart';
 import 'song.dart';
 import 'song_repository.dart';
 import '../entities/song_playlist.dart';
+import '../pages/song_detail_page.dart';
 import '../utilities/io_print.dart';
 
 /// This class provides service for pause, resume, stop, loop and progress bar information for songs. 
@@ -249,6 +250,35 @@ class SongControlsManager extends ChangeNotifier {
     void toggleRandom() {
         setRandom(!_isRandom);
         showMessage("Random mode: ${_isRandom ? "ON" : "OFF"}", duration: const Duration(seconds: 1));
+    }
+
+    /// Push to the Song Detail Page of the input song. 
+    /// 
+    /// This does not check if the song isSamePlaylist (active playlist vs currently display playlist) 
+    /// like the [_handleSongTap] method in [SongScreenState] and [PlaylistDetailPageState].
+    /// Expansion to the [MusicPlayerDock] in expanded mode. 
+    void pushToSongDetailPage(Song song) async {
+        if (_currentSong == null) return; 
+        if (_currentSong!.assetPath == song.assetPath){
+            await Navigator.push(
+                context,
+                PageRouteBuilder(
+                    transitionDuration: Duration(milliseconds: 200),
+                    pageBuilder: (context, animation, secondaryAnimation) => SongDetailPage(
+                        initialSong: song,
+                        controlsManager: this,
+                        audioService: audioService,
+                        isLooping: isLooping,
+                        isRandom: isRandom,
+                        initialPosition: currentPosition,
+                        initialDuration: currentDuration,
+                    ),
+                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                        return FadeTransition(opacity: animation, child: child);
+                    },
+                ),
+            );
+        }
     }
 
     /// If [getIsLooping] is false, stop the audio, revert to the start of current song. Otherwise find the next Song in the list. 
