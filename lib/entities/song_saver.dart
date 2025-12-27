@@ -9,6 +9,7 @@ import '../utilities/io_print.dart';
 /// This class is responsible for saving to file and loading from file, statically. 
 class SongSaver {
     static const String _applicationFolderName = "DP_MP3_Player"; 
+    static String get applicationFolderName => _applicationFolderName; 
     static const String _masterFileName = "masterList.txt";
     /// External accessor to just the name of masterList.txt (no extension)
     static const String masterFileNameExt = "masterList";

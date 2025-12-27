@@ -9,16 +9,21 @@ typedef PlaylistTapCallback = void Function(SongsPlaylist playlist);
 /// 
 /// Refresh playlist songs count based on listener [playlistNotifier] from [SongRepository]. 
 class PlaylistsList extends StatelessWidget {
-    
     final PlaylistTapCallback onPlaylistTap; 
     final PlaylistTapCallback? onPlaylistButtonTap; 
-    const PlaylistsList({super.key, required this.onPlaylistTap, this.onPlaylistButtonTap});
+    
+    const PlaylistsList({
+        super.key, 
+        required this.onPlaylistTap, 
+        this.onPlaylistButtonTap
+    });
 
     /// Projects all available playlists from the SongRepository.
     ///  
     /// Use the change notifier [playlistNotifier] from [SongRepository] to update its view everytime a change to the data happen (not just identity change).
     @override
     Widget build(BuildContext context) {
+        // Warning: this is here to ensure that the playlist page state has the correct numbers of song after adding songs. 
         return Scaffold(
             body: AnimatedBuilder(
                 animation: SongRepository.playlistNotifier,
@@ -33,15 +38,9 @@ class PlaylistsList extends StatelessWidget {
 
     /// If there exist some playlist => provide list of playlists. Otherwise provide placeholder.  
     Widget _buildPlaylistsIfAvailable(List<SongsPlaylist> playlists){
-        return Column(
-            children: [
-                Expanded(
-                    child: playlists.isEmpty
-                        ? _buildPlaceholderIfNoPlaylistFound()
-                        : _buildPlaylistLists(playlists),
-                ),
-            ],
-        );
+        return playlists.isEmpty
+            ? _buildPlaceholderIfNoPlaylistFound()
+            : _buildPlaylistLists(playlists);
     }
 
     Widget _buildPlaylistLists(List<SongsPlaylist> playlists){

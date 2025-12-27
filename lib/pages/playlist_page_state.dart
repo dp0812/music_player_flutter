@@ -33,53 +33,81 @@ class PlaylistPageState extends State<PlaylistPage> {
                     appBar: AppBar(
                         title: const Text("Library"),
                     ),
-                    body: Column(
+                    body: Stack(
                         children: [
-                            // Button row.
-                            Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                        // Add Playlist Button.
-                                        ElevatedButton.icon(
-                                            onPressed: _addPlaylistByName,
-                                            icon: const Icon(Icons.playlist_add, size: 18),
-                                            label: const Text("New Playlist"),
-                                        ),
-                                    ],
-                                ),
+                            Column(
+                                children: [
+                                    _buildButtonsRow(),
+                                    // A thin line to separate the buttons and the list. 
+                                    const Divider(height: 0), 
+                                    _buildPlaylistsListWithBottomPadding(),
+                                ],
                             ),
-                            // A thin line to separate the buttons and the list. 
-                            const Divider(height: 0), 
-                            // List of all current Playlist(s).
-                            Expanded(
-                                child: PlaylistsList(
-                                    onPlaylistTap: _gotoPlaylistDetailPage,
-                                    onPlaylistButtonTap: _deletePlaylist,
-                                ),
-                            ),
+                            _buildMusicPlayerDock(),
                         ],
-                    ),
-                    // The bottom music player dock, include progress bar, title and buttons for next/previous, pause/play/resume, loop/random.
-                    bottomNavigationBar: MusicPlayerDock(
-                        currentSong: widget.controlsManager.currentSong,
-                        duration: widget.controlsManager.currentDuration,
-                        position: widget.controlsManager.currentPosition,
-                        onSeek: widget.controlsManager.handleSeek,
-                        
-                        audioService: widget.audioService,
-                        onNextSong: widget.controlsManager.gotoNextSong, 
-                        onPreviousSong: widget.controlsManager.gotoPreviousSong, 
-                        onPlayPauseResume: widget.controlsManager.handlePlayResumePause, 
-                        onStop: widget.controlsManager.stop,
-                        onToggleLoop: widget.controlsManager.toggleLoop,
-                        isLooping: widget.controlsManager.isLooping,
-                        onToggleRandom: widget.controlsManager.toggleRandom,
-                        isRandom: widget.controlsManager.isRandom,
                     ),
                 );
             },
+        );
+    }
+
+    /// Button row, but has exactly 1 button: add new playlist. 
+    Widget _buildButtonsRow(){
+        return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                    // Add Playlist Button.
+                    ElevatedButton.icon(
+                        onPressed: _addPlaylistByName,
+                        icon: const Icon(Icons.playlist_add, size: 18),
+                        label: const Text("New Playlist"),
+                    ),
+                ],
+            ),
+        );
+    }
+
+    /// Lists of current Playlist(s), with bottom padding.
+    /// 
+    /// This padding (180) is just enough for the dock in compact mode if scroll to list bottom.
+    Widget _buildPlaylistsListWithBottomPadding(){
+        return Expanded(
+            child: Padding(
+                padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom+180),
+                child: PlaylistsList(
+                    onPlaylistTap: _gotoPlaylistDetailPage,
+                    onPlaylistButtonTap: _deletePlaylist,
+                ),
+            ),
+        );
+    }
+
+    /// Normal [MusicPlayerDock] configuration. 
+    /// 
+    /// Expandable, default in compact mode, showing the title. 
+    Widget _buildMusicPlayerDock(){
+        return Positioned(
+            left: 0, 
+            right: 0, 
+            bottom: 0, 
+            child: MusicPlayerDock(
+                currentSong: widget.controlsManager.currentSong,
+                duration: widget.controlsManager.currentDuration,
+                position: widget.controlsManager.currentPosition,
+                onSeek: widget.controlsManager.handleSeek,
+                
+                audioService: widget.audioService,
+                onNextSong: widget.controlsManager.gotoNextSong, 
+                onPreviousSong: widget.controlsManager.gotoPreviousSong, 
+                onPlayPauseResume: widget.controlsManager.handlePlayResumePause, 
+                onStop: widget.controlsManager.stop,
+                onToggleLoop: widget.controlsManager.toggleLoop,
+                isLooping: widget.controlsManager.isLooping,
+                onToggleRandom: widget.controlsManager.toggleRandom,
+                isRandom: widget.controlsManager.isRandom,
+            ),
         );
     }
 

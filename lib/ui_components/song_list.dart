@@ -42,7 +42,6 @@ class SongList extends StatelessWidget {
                     subtitle: Text(song.artist ?? "Unknown"),
                     onTap: () => onSongTap(song),
                     selected: (song.assetPath == (currentSong?.assetPath)) && isSamePlaylist, // Check for path of the song. 
-                    selectedTileColor: Theme.of(context).colorScheme.onPrimaryContainer,
                     trailing: // Button append to the right of the list. 
                         Row(
                             // If not provided the correct function, then we dont display the button.

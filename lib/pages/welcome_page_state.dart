@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:music_player/pages/settings_page.dart';
 
 import 'playlist_page.dart';
 import 'song_screen.dart';
@@ -12,6 +13,7 @@ import '../entities/song_controls_manager.dart';
 /// This ensure the playing of audio consistently across different pages. Currently, there are 2 direct pages - all other pages are sub-pages of these 2: 
 /// 1. [SongScreen] which display the content of the masterPlaylist - [SongRepository.masterSongPlaylist]. 
 /// 2. [PlaylistPage] which display the overview of all playlists - [SongRepository.allSongPlaylists]. 
+/// 3. [SettingsPage] which display the theme setting and others info. 
 class WelcomePageState extends State<WelcomePage> {
     int _selectedIndex = 0;
 
@@ -53,6 +55,10 @@ class WelcomePageState extends State<WelcomePage> {
                     NavigationDestination(
                         icon: Icon(Icons.library_music_outlined, size: 20),
                         label: "Library",
+                    ),
+                    NavigationDestination(
+                        icon: Icon(Icons.settings, size: 20), 
+                        label: "Settings",
                     ),
                 ],
                 labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
@@ -103,6 +109,16 @@ class WelcomePageState extends State<WelcomePage> {
                     isRandom: _controlsManager.isRandom,
                     currentDuration: _controlsManager.currentDuration,
                     currentPosition: _controlsManager.currentPosition,
+                );
+            case 2: 
+                return SettingsPage(
+                    audioService: audioService, 
+                    controlsManager: _controlsManager, 
+                    currentSong: _controlsManager.currentSong, 
+                    isLooping: _controlsManager.isLooping, 
+                    isRandom: _controlsManager.isRandom, 
+                    currentDuration: _controlsManager.currentDuration, 
+                    currentPosition: _controlsManager.currentPosition
                 );
             default: 
                 return const SizedBox(); // This should NOT happen. Like ever. 

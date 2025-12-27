@@ -14,8 +14,6 @@ class NowPlayingDisplay extends StatelessWidget {
     final Duration position;
     final ValueChanged<double> onSeek;
     final bool showTitle;
-    final Color? activeColor;
-    final Color? inactiveColor;
     /// Set to [true] to stop the UI from displaying last [preventDuration] (in ms) of the progress bar. 
     final bool preventLastDuration; 
     /// Default prevention duration is 50 ms. 
@@ -35,8 +33,6 @@ class NowPlayingDisplay extends StatelessWidget {
         required this.position,
         required this.onSeek,
         this.showTitle = true,
-        this.activeColor,
-        this.inactiveColor,
         this.preventLastDuration = false,
         this.preventDuration = 50,
         this.isExpanded = false,
@@ -79,7 +75,7 @@ class NowPlayingDisplay extends StatelessWidget {
             children: [
                 // Expandable title if callback is provided, else fixed title. 
                 (onToggleExpanded != null) ? _expandableTitle() : _notExpandableTitle(),
-                // Progress bar
+                // Progress bar.
                 _buildProgressBarSlider(context, totalMilliseconds, currentMilliseconds),
                 _buildTimeOnTwoEnd(),
             ],
@@ -197,8 +193,6 @@ class NowPlayingDisplay extends StatelessWidget {
             value: currentMilliseconds,
             // User drag the ball on the progress bar. 
             onChanged: onSeek,
-            activeColor: activeColor ?? Theme.of(context).colorScheme.primary,
-            inactiveColor: inactiveColor ?? Theme.of(context).colorScheme.secondary,
         );
     }
 

@@ -36,60 +36,87 @@ class SongScreenState extends State<SongScreen> {
                     appBar: AppBar(
                         title: const Text("Home"),
                     ),
-                    body: Column(
+                    body: Stack(
                         children: [
-                            // Button row
-                            Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                    children: [
-                                        // Add Playlist Button
-                                        ElevatedButton.icon(
-                                            onPressed: _handleAddSong,
-                                            icon: const Icon(Icons.playlist_add, size: 18),
-                                            label: const Text("Add Song"),
-                                        ),
-                                        ElevatedButton.icon(
-                                            onPressed: _handleAddMusicDirectory, 
-                                            icon: const Icon(Icons.folder, size: 18),
-                                            label: const Text("Scan folder"),
-                                        ),
-                                    ],
-                                ),
+                            Column(
+                                children: [
+                                    _buildButtonsRow(),
+                                    // A thin line to separate the buttons and the list. 
+                                    const Divider(height: 0), 
+                                    _buildSongsListWithBottomPadding(),
+                                ],
                             ),
-                            // A thin line to separate the buttons and the list. 
-                            const Divider(height: 0), 
-                            // List of all current Song(s)
-                            Expanded(
-                                child: SongList(
-                                    currentPlaylist: SongRepository.masterSongPlaylist,
-                                    currentSong: widget.controlsManager.currentSong,
-                                    onSongTap: _handleSongTap,
-                                    onSongButtonTap: _handleSongButtonTap,
-                                ),
-                            ),
+                            _buildMusicPlayerDock(),
                         ],
-                    ),
-                    // The bottom music player dock, include progress bar, title and buttons for next/previous, pause/play/resume, loop/random.
-                    bottomNavigationBar: MusicPlayerDock(
-                        currentSong: widget.controlsManager.currentSong,
-                        duration: widget.controlsManager.currentDuration,
-                        position: widget.controlsManager.currentPosition,
-                        onSeek: widget.controlsManager.handleSeek,
-
-                        audioService: widget.audioService,
-                        onNextSong: widget.controlsManager.gotoNextSong, 
-                        onPreviousSong: widget.controlsManager.gotoPreviousSong, 
-                        onPlayPauseResume: widget.controlsManager.handlePlayResumePause, 
-                        onStop: widget.controlsManager.stop,
-                        onToggleLoop: widget.controlsManager.toggleLoop,
-                        isLooping: widget.controlsManager.isLooping,
-                        onToggleRandom: widget.controlsManager.toggleRandom,
-                        isRandom: widget.controlsManager.isRandom,
                     ),
                 );
             },
+        );
+    }
+
+    /// 2 buttons, add song and scan folder to add all songs in the folder.
+    Widget _buildButtonsRow(){
+        return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                    ElevatedButton.icon(
+                        onPressed: _handleAddSong,
+                        icon: const Icon(Icons.playlist_add, size: 18),
+                        label: const Text("Add Song"),
+                    ),
+                    ElevatedButton.icon(
+                        onPressed: _handleAddMusicDirectory, 
+                        icon: const Icon(Icons.folder, size: 18),
+                        label: const Text("Scan folder"),
+                    ),
+                ],
+            ),
+        );
+    }
+
+    /// Lists of current song(s), with bottom padding.
+    /// 
+    /// This padding (180) is just enough for the dock in compact mode if scroll to list bottom.
+    Widget _buildSongsListWithBottomPadding(){
+        return Expanded(
+            child: Padding(
+                padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom+180),
+                child: SongList(
+                    currentPlaylist: SongRepository.masterSongPlaylist,
+                    currentSong: widget.controlsManager.currentSong,
+                    onSongTap: _handleSongTap,
+                    onSongButtonTap: _handleSongButtonTap,
+                ),
+            ),
+        );
+    }
+
+    /// Normal [MusicPlayerDock] configuration. 
+    /// 
+    /// Expandable, default in compact mode, showing the title. 
+    Widget _buildMusicPlayerDock(){
+        return Positioned(
+            left: 0, 
+            right: 0, 
+            bottom: 0, 
+            child: MusicPlayerDock(
+                currentSong: widget.controlsManager.currentSong,
+                duration: widget.controlsManager.currentDuration,
+                position: widget.controlsManager.currentPosition,
+                onSeek: widget.controlsManager.handleSeek,
+                
+                audioService: widget.audioService,
+                onNextSong: widget.controlsManager.gotoNextSong, 
+                onPreviousSong: widget.controlsManager.gotoPreviousSong, 
+                onPlayPauseResume: widget.controlsManager.handlePlayResumePause, 
+                onStop: widget.controlsManager.stop,
+                onToggleLoop: widget.controlsManager.toggleLoop,
+                isLooping: widget.controlsManager.isLooping,
+                onToggleRandom: widget.controlsManager.toggleRandom,
+                isRandom: widget.controlsManager.isRandom,
+            ),
         );
     }
 

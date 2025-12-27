@@ -169,9 +169,13 @@ class SongControlsManager extends ChangeNotifier {
             }
         }
 
-        // Fallback: Play the first song if nothing is playing/on pause. 
+        // Play the first song of the master list if nothing is playing/on pause. 
         if ( _currentSong == null && currentSongList.isNotEmpty) {  
+            _songEnded = false;
             final firstSong = currentSongList.first;
+            _activeSongsPlaylist.replaceSongs(SongRepository.masterSongPlaylist.getCurrentPlaylistSongs());
+            _activeSongsPlaylist.playlistName = SongRepository.masterSongPlaylist.playlistName; 
+            IO.d("Default to: ${activeSongsPlaylist.playlistName}");
             _setCurrentSong(firstSong);
             audioService.playFile(firstSong.assetPath);
         }
@@ -356,7 +360,7 @@ class SongControlsManager extends ChangeNotifier {
         }
     }
 
-    /// Get the current active song list.
+    /// Get the current active song list. If active list playlist has no song, use the [masterSongPlaylist].
     /// 
     /// This persists during navigation, and is only changed when user tap to play a NEW song on some list view.  
     List<Song> _getActiveSongList() {

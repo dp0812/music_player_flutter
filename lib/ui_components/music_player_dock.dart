@@ -22,8 +22,6 @@ class MusicPlayerDock extends StatefulWidget{
     final ValueChanged<double> onSeek;
     /// By default = true. 
     final bool showTitle;
-    final Color? activeColor;
-    final Color? inactiveColor;
     /// Set to [true] to stop the UI from displaying last [preventDuration] (in ms) of the progress bar. 
     final bool preventLastDuration; 
     /// Default prevention duration is 50 ms. 
@@ -51,8 +49,6 @@ class MusicPlayerDock extends StatefulWidget{
         required this.position,
         required this.onSeek,
         this.showTitle = true,
-        this.activeColor,
-        this.inactiveColor,
         this.preventLastDuration = false,
         this.preventDuration = 50,
         // Control buttons. 
@@ -193,7 +189,7 @@ class MusicPlayerDockState extends State<MusicPlayerDock> {
         final theme = Theme.of(context);
         final isDark = theme.brightness == Brightness.dark;
         // Loop and Random button. 
-        final loopActiveColor = Theme.of(context).colorScheme.onPrimaryContainer; 
+        final loopActiveColor = Theme.of(context).colorScheme.onPrimary; 
         final loopInactiveColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.9);
         
         final baseButtonBackground = isDark 

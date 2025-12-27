@@ -43,7 +43,7 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
                 return Scaffold(
                     appBar: AppBar(
                         title: Text(widget.playlist.playlistName),
-                        actions: [
+                        actions: [ // Add song button. 
                             IconButton(
                                 icon: const Icon(Icons.add_to_photos),
                                 onPressed: _handleAddSong,
@@ -51,38 +51,62 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
                             ),
                         ],
                     ),
-                    body: Column(
+                    body: Stack(
                         children: [
-                            // List of all current Song(s).
-                            Expanded(
-                                child: SongList(
-                                    currentPlaylist: widget.playlist,
-                                    currentSong: widget.controlsManager.currentSong,
-                                    onSongTap: _handleSongTap,
-                                    onSongButtonTap: _handleSongButtonTap, 
-                                ),
+                            Column(
+                                children: [
+                                    _buildSongsListWithBottomPadding(),
+                                ],
                             ),
+                            _buildMusicPlayerDock(),
                         ],
-                    ),
-                    // The bottom music player dock, include progress bar, title and buttons for next/previous, pause/play/resume, loop/random.
-                    bottomNavigationBar: MusicPlayerDock(
-                        currentSong: widget.controlsManager.currentSong,
-                        duration: widget.controlsManager.currentDuration,
-                        position: widget.controlsManager.currentPosition,
-                        onSeek: widget.controlsManager.handleSeek,
-                        
-                        audioService: widget.audioService,
-                        onNextSong: widget.controlsManager.gotoNextSong, 
-                        onPreviousSong: widget.controlsManager.gotoPreviousSong, 
-                        onPlayPauseResume: widget.controlsManager.handlePlayResumePause, 
-                        onStop: widget.controlsManager.stop,
-                        onToggleLoop: widget.controlsManager.toggleLoop,
-                        isLooping: widget.controlsManager.isLooping,
-                        onToggleRandom: widget.controlsManager.toggleRandom,
-                        isRandom: widget.controlsManager.isRandom,
                     ),
                 );
             },
+        );
+    }
+
+    /// Lists of current song(s), with bottom padding.
+    /// 
+    /// This padding (180) is just enough for the dock in compact mode if scroll to list bottom.
+    Widget _buildSongsListWithBottomPadding(){
+        return Expanded(
+            child: Padding(
+                padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom+180),
+                child: SongList(
+                    currentPlaylist: widget.playlist,
+                    currentSong: widget.controlsManager.currentSong,
+                    onSongTap: _handleSongTap,
+                    onSongButtonTap: _handleSongButtonTap, 
+                ),
+            ),
+        );
+    }
+
+    /// Normal [MusicPlayerDock] configuration. 
+    /// 
+    /// Expandable, default in compact mode, showing the title. 
+    Widget _buildMusicPlayerDock(){
+        return Positioned(
+            left: 0, 
+            right: 0, 
+            bottom: 0, 
+            child: MusicPlayerDock(
+                currentSong: widget.controlsManager.currentSong,
+                duration: widget.controlsManager.currentDuration,
+                position: widget.controlsManager.currentPosition,
+                onSeek: widget.controlsManager.handleSeek,
+                
+                audioService: widget.audioService,
+                onNextSong: widget.controlsManager.gotoNextSong, 
+                onPreviousSong: widget.controlsManager.gotoPreviousSong, 
+                onPlayPauseResume: widget.controlsManager.handlePlayResumePause, 
+                onStop: widget.controlsManager.stop,
+                onToggleLoop: widget.controlsManager.toggleLoop,
+                isLooping: widget.controlsManager.isLooping,
+                onToggleRandom: widget.controlsManager.toggleRandom,
+                isRandom: widget.controlsManager.isRandom,
+            ),
         );
     }
 
