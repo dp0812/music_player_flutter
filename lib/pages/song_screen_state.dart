@@ -14,6 +14,7 @@ import '../ui_components/song_list.dart';
 /// Provides a list view of the current songs in the playlist alongside with the playback controls dock and the progress bar.
 class SongScreenState extends State<SongScreen> {
     bool _isLoading = true;
+    static bool _isFirstTime = true; 
     
     @override
     void initState() {
@@ -38,10 +39,9 @@ class SongScreenState extends State<SongScreen> {
                         title: const Text("Home"),
                         // Search song button. 
                         actions: [
-                            ElevatedButton.icon(
+                            ElevatedButton(
                                 onPressed: _searchSong,
-                                icon: const Icon(Icons.search), 
-                                label: const Text("Search")
+                                child: const Icon(Icons.search), 
                             ),
                         ],
                     ),
@@ -73,31 +73,28 @@ class SongScreenState extends State<SongScreen> {
                     ElevatedButton.icon(
                         onPressed: _handleAddSong,
                         icon: const Icon(Icons.playlist_add, size: 18),
-                        label: const Text("Add Song"),
+                        label: const Text("Add"),
                     ),
                     ElevatedButton.icon(
                         onPressed: _handleAddMusicDirectory, 
                         icon: const Icon(Icons.folder, size: 18),
-                        label: const Text("Scan folder"),
+                        label: const Text("Folder"),
                     ),
                 ],
             ),
         );
     }
 
-    /// Lists of current song(s), with bottom padding.
+    /// Lists of current song(s), with bottom padding predefined inside the list. 
     /// 
     /// This padding (180) is just enough for the dock in compact mode if scroll to list bottom.
     Widget _buildSongsListWithBottomPadding(){
         return Expanded(
-            child: Padding(
-                padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom+180),
-                child: SongList(
-                    currentPlaylist: SongRepository.masterSongPlaylist,
-                    currentSong: widget.controlsManager.currentSong,
-                    onSongTap: _handleSongTap,
-                    onSongButtonTap: _handleSongButtonTap,
-                ),
+            child: SongList(
+                currentPlaylist: SongRepository.masterSongPlaylist,
+                currentSong: widget.controlsManager.currentSong,
+                onSongTap: _handleSongTap,
+                onSongButtonTap: _handleSongButtonTap,
             ),
         );
     }
@@ -115,8 +112,7 @@ class SongScreenState extends State<SongScreen> {
                 duration: widget.controlsManager.currentDuration,
                 position: widget.controlsManager.currentPosition,
                 onSeek: widget.controlsManager.handleSeek,
-                // working. 
-                // pushToDetail: _handleSongTap, 
+
                 pushToDetail: widget.controlsManager.pushToSongDetailPage,
                 audioService: widget.audioService,
                 onNextSong: widget.controlsManager.gotoNextSong, 
@@ -213,6 +209,11 @@ class SongScreenState extends State<SongScreen> {
     Future<void> _loadAndSynchronizeSongs() async {
         setState(() => _isLoading = true);
         await SongRepository.loadSongs();
+        // Obtain the playlist data for the add to function in song detail page to work on the 1st time the app start. 
+        if (_isFirstTime){
+            await SongRepository.loadPlaylists(); 
+            _isFirstTime = false; 
+        }
         await widget.controlsManager.synchronizePlaybackState(SongRepository.masterSongPlaylist);
         setState(() => _isLoading = false);
     }

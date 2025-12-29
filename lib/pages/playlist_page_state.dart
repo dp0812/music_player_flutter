@@ -69,17 +69,14 @@ class PlaylistPageState extends State<PlaylistPage> {
         );
     }
 
-    /// Lists of current Playlist(s), with bottom padding.
+    /// Lists of current Playlist(s), with bottom padding predefined inside the list. 
     /// 
     /// This padding (180) is just enough for the dock in compact mode if scroll to list bottom.
     Widget _buildPlaylistsListWithBottomPadding(){
         return Expanded(
-            child: Padding(
-                padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom+180),
-                child: PlaylistsList(
-                    onPlaylistTap: _gotoPlaylistDetailPage,
-                    onPlaylistButtonTap: _deletePlaylist,
-                ),
+            child: PlaylistsList(
+                onPlaylistTap: _gotoPlaylistDetailPage,
+                onPlaylistButtonTap: _deletePlaylist,
             ),
         );
     }
@@ -117,7 +114,7 @@ class PlaylistPageState extends State<PlaylistPage> {
         await Navigator.push(
             context,
             PageRouteBuilder(
-                transitionDuration: Duration(milliseconds: 200),
+                transitionDuration: Duration(milliseconds: 500),
                 pageBuilder: (context, animation, secondaryAnimation) => PlaylistDetailPage(
                     playlist: playlist,
                     audioService: widget.audioService,

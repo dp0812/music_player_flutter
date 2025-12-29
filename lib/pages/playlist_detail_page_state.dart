@@ -46,10 +46,9 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
                         title: Text(widget.playlist.playlistName),
                         actions: [
                             // Search song button. 
-                            ElevatedButton.icon(
+                            ElevatedButton(
                                 onPressed: _searchSong,
-                                icon: const Icon(Icons.search), 
-                                label: const Text("Search")
+                                child: const Icon(Icons.search), 
                             ),
                             // Add song button. 
                             IconButton(
@@ -74,19 +73,16 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
         );
     }
 
-    /// Lists of current song(s), with bottom padding.
+    /// Lists of current song(s), with bottom padding predefined inside the list. 
     /// 
     /// This padding (180) is just enough for the dock in compact mode if scroll to list bottom.
     Widget _buildSongsListWithBottomPadding(){
         return Expanded(
-            child: Padding(
-                padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom+180),
-                child: SongList(
-                    currentPlaylist: widget.playlist,
-                    currentSong: widget.controlsManager.currentSong,
-                    onSongTap: _handleSongTap,
-                    onSongButtonTap: _handleSongButtonTap, 
-                ),
+            child: SongList(
+                currentPlaylist: widget.playlist,
+                currentSong: widget.controlsManager.currentSong,
+                onSongTap: _handleSongTap,
+                onSongButtonTap: _handleSongButtonTap, 
             ),
         );
     }

@@ -177,6 +177,23 @@ class SongRepository {
         }
     }
 
+    /// Add the current song to existing playlist(s) and write back to disk.
+    /// 
+    /// Notify all of its listener if any new song is added, otherwise do nothing. 
+    static Future<void> addSongToSelectedPlaylists({required List<String> playlistNames, required Song newSong}) async {
+        if (playlistNames.isEmpty) return; 
+        bool changed = false; 
+        for (String name in playlistNames){
+            if (!allSongPlaylists.containsKey(name)) continue; 
+            if (allSongPlaylists[name]!.addSong(newSong)) {
+                IO.d("Added ${newSong.title} to playlist $name.");
+                SongSaver.savePlaylist(playlistName: name, songs: allSongPlaylists[name]!.getCurrentPlaylistSongs());
+                changed = true; 
+            }
+        }
+        if (changed) playlistNotifier.setPlaylistsAndNotifyListeners(allSongPlaylists);
+    }
+
     /// Prompt user to add songs, using the OS file system (song MUST be .mp3 file). 
     /// 
     /// Currently only call by the SongScreenState, to add to the masterList. 

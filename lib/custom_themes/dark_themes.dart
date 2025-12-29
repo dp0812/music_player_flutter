@@ -45,12 +45,22 @@ class DarkThemes {
             name: "Hàn Nguyệt",
         );
 
+    /// To another friend of mine. 
+    static ThemeData get whiteIce => _createDarkTheme(
+            primaryColor: Colors.white,
+            secondaryColor: Colors.grey.shade300,
+            backgroundColor: Colors.grey.shade900,
+            highlightColor: Colors.cyan.shade600,
+            name: "Thắng Mai",
+        );
+
     /// Get all available dark themes.
     static Map<String, ThemeData> get allThemes => {
             "Thanh Tiêu": darkGreen,
             "Bình Minh": darkBlue,
             "Xích Ngọc": darkRed,
             "Hàn Nguyệt": darkGrey,
+            "Thắng Mai": whiteIce, 
         };
 
     /// Get theme by name.

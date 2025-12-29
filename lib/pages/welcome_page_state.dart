@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:music_player/pages/settings_page.dart';
 
 import 'playlist_page.dart';
+import 'settings_page.dart';
 import 'song_screen.dart';
 import 'welcome_page.dart';
 import '../entities/audio_player_service.dart'; 
@@ -124,7 +124,7 @@ class WelcomePageState extends State<WelcomePage> {
                 return const SizedBox(); // This should NOT happen. Like ever. 
         }
     }
-
+    
     @override
     void dispose() {
         _controlsManager.cancelAudioStreamsAndSubscriptions();

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:music_player/ui_components/add_song_to_playlists.dart';
 
 import 'song_detail_page.dart';
 import '../entities/song.dart';
@@ -40,6 +41,12 @@ class SongDetailPageState extends State<SongDetailPage> {
                             onPressed: () => Navigator.pop(context),
                         ),
                         actions: [
+                            // Add the current song to some playlist(s). 
+                            IconButton(
+                                icon: Icon(Icons.add),
+                                onPressed: () => _addSongToSelectedPlaylists(displayedSong),
+                                tooltip: "Add To",
+                            ),
                             IconButton(
                                 icon: Icon(Icons.info_outline),
                                 onPressed: () => _showSongMetadata(displayedSong),
@@ -159,6 +166,19 @@ class SongDetailPageState extends State<SongDetailPage> {
 
     Widget _buildMetadataRow(String label, String value) {
         return SongMetadataRow(label: label, value: value);
+    }
+
+
+    /// Let user add current song to multiple playlist(s). 
+    void _addSongToSelectedPlaylists(Song displayedSong) async {
+        await showDialog(
+            context: context, 
+            builder: (BuildContext context){
+                return AddSongToPlaylists(currentSong: displayedSong);
+            }
+        );
+
+        setState(() {/* Rebuild UI with new song count and new song in playlist */});
     }
 
     @override
