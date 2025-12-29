@@ -1,10 +1,11 @@
 import 'dart:io';
-import '../entities/playlist_notifier.dart';
+import 'dart:collection';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 
 import 'song_saver.dart';
+import '../entities/playlist_notifier.dart';
 import '../entities/song_playlist.dart';
 import '../entities/song.dart';
 import '../utilities/io_print.dart';
@@ -89,12 +90,19 @@ class SongRepository {
 
     /// Return the common Song(s) between the [currentPlaylistSongs] and the [masterSongPlaylist].
     /// 
-    /// These common Song(s) are Song object(s) from the masterSongPlaylist, not from the currentPlaylistSongs.  
+    /// These common Song(s) are Song object(s) from the currentPlaylistSongs.  
+    /// Remarks: The order of the original playlist is preserved with LinkedHashMap, but also ensure time complexity constraint. 
     static List<Song> commonValidSongs(List<String> currentPlaylistPaths){
         if (currentPlaylistPaths.isEmpty || SongRepository.masterSongPlaylist.getCurrentPlaylistSongs().isEmpty) return [];
-        final Set<String> assetPathSet = currentPlaylistPaths.toSet();        
-        return SongRepository.masterSongPlaylist.getCurrentPlaylistSongs()
-            .where((song) => assetPathSet.contains(song.assetPath))
+        
+        final LinkedHashMap<String, Song> masterSongMap = LinkedHashMap<String, Song>();
+        for (Song song in SongRepository.masterSongPlaylist.getCurrentPlaylistSongs()) {
+            masterSongMap[song.assetPath] = song;
+        }    
+        
+        return currentPlaylistPaths
+            .where((path) => masterSongMap.containsKey(path))
+            .map((path) => masterSongMap[path]!)
             .toList();
     }
 

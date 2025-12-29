@@ -5,20 +5,19 @@ import 'playlist_detail_page.dart';
 import 'song_detail_page.dart';
 import '../entities/song_controls_manager.dart';
 import '../entities/song.dart';
+import '../entities/song_playlist.dart';
 import '../entities/song_repository.dart';
 import '../entities/song_search_delegate.dart';
 import '../ui_components/music_player_dock.dart';
 import '../ui_components/song_list.dart';
 import '../ui_components/delete_song.dart';
 import '../ui_components/pick_from_master_view.dart';
-import '../utilities/io_print.dart';
 
 /// Provides a list view of the current songs in the playlist alongside with the playback controls dock and the progress bar.
 class PlaylistDetailPageState extends State<PlaylistDetailPage> {
 
     // Load flag for UI purpose. 
     bool _isLoading = true;
-    bool _isReloading = false;
 
     @override
     void initState() {
@@ -77,12 +76,26 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
     /// This padding (180) is just enough for the dock in compact mode if scroll to list bottom.
     Widget _buildSongsListWithBottomPadding(){
         return Expanded(
-            child: SongList(
-                currentPlaylist: widget.playlist,
-                currentSong: widget.controlsManager.currentSong,
-                onSongTap: _handleSongTap,
-                onSongButtonTap: _handleSongButtonTap, 
-            ),
+            child: Scaffold(
+                // Allow the inner song list to be rebuild if there is a corrupted path. 
+                body: AnimatedBuilder(
+                    animation: SongRepository.playlistNotifier, 
+                    builder: (context, child){
+                        final SongsPlaylist updatedPlaylist = SongRepository.playlistNotifier.playlists[widget.playlist.playlistName]!;
+                        // If there is a corrupted path, we reset the active playlist. 
+                        if (updatedPlaylist.getCurrentPlaylistSongs().length != widget.playlist.getCurrentPlaylistSongs().length){
+                            widget.playlist.replaceSongs(updatedPlaylist.getCurrentPlaylistSongs());  // We swap the song (thus, fail the condition). 
+                            widget.controlsManager.setActivePlaylist(updatedPlaylist);  // Using only this work, but doing this every single build is ineffective. 
+                        }
+                        return SongList( 
+                            currentPlaylist: widget.playlist,
+                            currentSong: widget.controlsManager.currentSong,
+                            onSongTap: _handleSongTap,
+                            onSongButtonTap: _handleSongButtonTap, 
+                        );
+                    }
+                ),
+            )
         );
     }
 
@@ -201,43 +214,27 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
     /// 
     /// Remove any invalid songs spotted. 
     Future<void> _loadAndSynchronizeSongs() async {
-        // Prevent multiple rapid reloads.
-        if (!mounted || _isReloading) return;
-        
-        _isReloading = true;
         setState(() => _isLoading = true);
 
-        try {
-            // First load songs to clean master list.
-            await SongRepository.loadSongs();
-            
-            final currentPlaylistSongs = widget.playlist.getCurrentPlaylistSongs();
-            final validSongs = commonValidSongs(currentPlaylistSongs);
-            
-            // If playlist has invalid songs, only reload the playlist that is invalid.
-            if (validSongs.length != currentPlaylistSongs.length) { 
-                await SongRepository.loadPlaylist(playlistName: widget.playlist.playlistName);
-            }
-            
-            // Synchronize playback state with the shared controls manager
-            await widget.controlsManager.synchronizePlaybackState(widget.playlist);
-        } catch (e) {
-            IO.e("Error in _loadAndSynchronizeSongs: ", error: e);
-        } finally {
-            if (mounted) {
-                setState(() {
-                    _isLoading = false;
-                    _isReloading = false;
-                });
-            } else {
-                _isReloading = false;
-            }
+        await SongRepository.loadSongs();
+        
+        final currentPlaylistSongs = widget.playlist.getCurrentPlaylistSongs();
+        final validSongs = commonValidSongs(currentPlaylistSongs);
+        
+        // If playlist has invalid songs, only reload the playlist that is invalid.
+        if (validSongs.length != currentPlaylistSongs.length) { 
+            await SongRepository.loadPlaylist(playlistName: widget.playlist.playlistName);
         }
+        
+        // Synchronize playback state with the shared controls manager
+        await widget.controlsManager.synchronizePlaybackState(widget.playlist);
+        setState(() => _isLoading = false);
     }
     
     /// Return the common Song(s) between the [currentPlaylistSongs] and the [masterSongPlaylist].
     /// 
     /// These common Song(s) are Song object(s) from the masterSongPlaylist, not from the currentPlaylistSongs.  
+    /// The order is not important, as we are only trying to see if there are invalid songs or not. 
     List<Song> commonValidSongs(List<Song> currentPlaylistSongs){
         if (currentPlaylistSongs.isEmpty || SongRepository.masterSongPlaylist.getCurrentPlaylistSongs().isEmpty) return [];
         final Set<String> assetPathSet = currentPlaylistSongs.map((song) => song.assetPath).toSet();        

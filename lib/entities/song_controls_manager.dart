@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/material.dart';
 
 import 'audio_player_service.dart';
@@ -79,7 +80,12 @@ class SongControlsManager extends ChangeNotifier {
             _setCurrentSong(previousSong);
             audioService.playFile(previousSong.assetPath);
         } else {
-            showMessage("Error: Song file is missing or moved: '${previousSong.title}'", isWarning: true);
+            showMessage(
+                title: "Corrupted file",
+                message: "Error: Song file is missing or moved. Please click on another song to refresh the list!", 
+                duration: Duration(seconds: 4), 
+                messageType: ContentType.warning,
+            );
             stop();
         }
     }
@@ -108,7 +114,12 @@ class SongControlsManager extends ChangeNotifier {
             _setCurrentSong(nextSong);
             audioService.playFile(nextSong.assetPath);
         } else {
-            showMessage("Error: Song file is missing or moved: '${nextSong.title}'", isWarning: true);
+            showMessage(
+                title: "Corrupted file",
+                message: "Error: Song file is missing or moved. Please click on another song to refresh the list!", 
+                duration: Duration(seconds: 4), 
+                messageType: ContentType.warning,
+            );
             stop();
         }
     }
@@ -164,7 +175,12 @@ class SongControlsManager extends ChangeNotifier {
                     audioService.playFile(songToPlay.assetPath);                
                     return;
                 } else {
-                    showMessage("Error: Song file is missing or moved: '${songToPlay.title}'", isWarning: true);
+                    showMessage(
+                        title: "Corrupted file",
+                        message: "Error: Song file is missing or moved. Please click on another song to refresh the list!", 
+                        duration: Duration(seconds: 4), 
+                        messageType: ContentType.warning,
+                    );
                     stop();
                 }
             }
@@ -193,9 +209,24 @@ class SongControlsManager extends ChangeNotifier {
             _setCurrentSong(song);
             audioService.playFile(song.assetPath);
         } else {
-            showMessage("Error: Song file is missing or moved: '${song.title}'", isWarning: true);
+            showMessage(
+                title: "Corrupted file",
+                message: "Error: Song file is missing or moved. Please click on another song to refresh the list!", 
+                duration: Duration(seconds: 4), 
+                messageType: ContentType.warning,
+            );
             stop();
         }
+    }
+
+    /// Set the activePlaylist to [updatedSongsPlaylist] by copying the song and the name. 
+    /// 
+    /// Remarks: This should only be used when there is a corruption in the file itself.
+    /// Consider updating the songs in [widget.playlist] before setting this in [PlaylistDetailPageState] to avoid repeatedly calling this every frame.  
+    Future<void> setActivePlaylist(SongsPlaylist updatedSongsPlaylist) async {
+        _activeSongsPlaylist.replaceSongs(updatedSongsPlaylist.getCurrentPlaylistSongs());
+        _activeSongsPlaylist.playlistName = updatedSongsPlaylist.playlistName;
+        IO.w("Reset active list to: ${_activeSongsPlaylist.playlistName} with ${_activeSongsPlaylist.songCount} song(s).");
     }
 
     /// Stop song, reset the UI state and reload data from [SongRepository]. Then notify all listeners.  
@@ -243,13 +274,21 @@ class SongControlsManager extends ChangeNotifier {
     /// Toogle loop using setter that notify listener. 
     void toggleLoop() {
         setLooping(!_isLooping);
-        showMessage("Loop mode: ${_isLooping ? "ON" : "OFF"}", duration: const Duration(seconds: 1));
+        showMessage(
+            title: "Mode change",
+            message: "Loop mode: ${_isLooping ? "ON" : "OFF"}", 
+            duration: const Duration(seconds: 1)
+        );
     }
 
     /// Toogle random using setter that notify listener. 
     void toggleRandom() {
         setRandom(!_isRandom);
-        showMessage("Random mode: ${_isRandom ? "ON" : "OFF"}", duration: const Duration(seconds: 1));
+        showMessage(
+            title: "Mode change",
+            message: "Random mode: ${_isLooping ? "ON" : "OFF"}", 
+            duration: const Duration(seconds: 1)
+        );
     }
 
     /// Push to the Song Detail Page of the input song. 
@@ -357,7 +396,12 @@ class SongControlsManager extends ChangeNotifier {
             _setCurrentSong(nextSong);
             audioService.playFile(nextSong.assetPath);
         } else {
-            showMessage("Error: Song file is missing or moved: '${nextSong.title}'", isWarning: true);
+            showMessage(
+                title: "Corrupted file",
+                message: "Error: Song file is missing or moved. Please click on another song to refresh the list!", 
+                duration: Duration(seconds: 4), 
+                messageType: ContentType.warning,
+            );
             stop();
         }
     }
@@ -370,9 +414,16 @@ class SongControlsManager extends ChangeNotifier {
         int songsAdded = await SongRepository.addSongsFromUserSelection(); 
         if (songsAdded > 0) {
             notifyListeners();
-            showMessage("$songsAdded song(s) added!");
+            showMessage(
+                title: "Updated data",
+                message: "$songsAdded song(s) added!",
+                messageType: ContentType.success,
+            );
         } else {
-            showMessage("No new songs selected.");
+            showMessage(
+                title: "",
+                message: "No new songs selected."
+            );
         }
     }
 
@@ -384,9 +435,16 @@ class SongControlsManager extends ChangeNotifier {
         int songsAdded = await SongRepository.fetchSongsFromUserDirectory(); 
         if (songsAdded > 0) {
             notifyListeners();
-            showMessage("$songsAdded song(s) added!");
+            showMessage(
+                title: "Updated data",
+                message: "$songsAdded song(s) added!",
+                messageType: ContentType.success,
+            );
         } else {
-            showMessage("No new songs selected.");
+            showMessage(
+                title: "",
+                message: "No new songs selected."
+            );
         }
     }
 
@@ -410,7 +468,12 @@ class SongControlsManager extends ChangeNotifier {
             _setCurrentSong(song);
             audioService.playFile(song.assetPath);
         } else {
-            showMessage("Error: Song file is missing or moved: '${song.title}'", isWarning: true);
+            showMessage(
+                title: "Corrupted file",
+                message: "Error: Song file is missing or moved. Please click on another song to refresh the list!", 
+                duration: Duration(seconds: 4), 
+                messageType: ContentType.warning,
+            );
             stop();
         }
     }
@@ -542,19 +605,25 @@ class SongControlsManager extends ChangeNotifier {
     }
 
     /// Helper to display snackbar message with a preset duration. 
-    void showMessage(String message, {Duration duration = const Duration(seconds: 2), bool isWarning = false}){
+    void showMessage({required String message, required String title, Duration duration = const Duration(seconds: 2), ContentType messageType = ContentType.help}){
         if (!context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text(
-                    message,
-                    style: TextStyle(
-                        color: isWarning ? Colors.red.shade600 : Colors.grey.shade800,
-                        fontWeight: isWarning ? FontWeight.bold : FontWeight.normal
-                    )
-                ), 
-                duration: duration, 
+        
+        final customSnackBar = SnackBar(
+            elevation: 0,
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.transparent,
+            content: AwesomeSnackbarContent(
+                title: title, 
+                message: message, 
+                contentType: messageType,
+                inMaterialBanner: true,
             ),
+            duration: duration, 
         );
+
+        ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(customSnackBar);
+        
     }
 }

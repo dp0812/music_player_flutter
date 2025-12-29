@@ -114,7 +114,7 @@ class PlaylistPageState extends State<PlaylistPage> {
         await Navigator.push(
             context,
             PageRouteBuilder(
-                transitionDuration: Duration(milliseconds: 500),
+                transitionDuration: Duration(milliseconds: 300),
                 pageBuilder: (context, animation, secondaryAnimation) => PlaylistDetailPage(
                     playlist: playlist,
                     audioService: widget.audioService,
