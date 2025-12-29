@@ -21,11 +21,11 @@ class SongRepository {
     /// Each playlist name is a key, connect to the list of songs. 
     static Map<String,SongsPlaylist> allSongPlaylists = {};
 
-    /// Load playlist data in the application directory and populate the map [SongRepository.allSongPlaylists]
+    /// Load playlist data in the application directory and populate the map [SongRepository.allSongPlaylists], removing all invalid songs. 
     /// 
-    /// For every playlists and songs in each playlist, the functions check the [Song.assetPath]. 
-    /// If assetPath can be matched with data in the [masterList.txt], a new Song object with that path will be add to the playlist. 
-    /// After obtaining a valid list of paths, trigger write back to the storage file. 
+    /// A song is considered invalid when its assetPath cannot be found in [SongSaver.masterFileNameExt].txt file.
+    /// If assetPath can be matched with data in the [SongSaver.masterFileNameExt].txt, a new Song object with that path will be add to the playlist. 
+    /// Trigger write back to file if there are invalid songs. 
     static Future<void> loadPlaylists() async {
         // Clear in-memory collection before loading
         allSongPlaylists.clear(); 
@@ -34,30 +34,68 @@ class SongRepository {
         for (String name in playlistNames) {
             List<String> paths = await SongSaver.loadSavedPlaylist(playlistName: name);
             SongsPlaylist newPlaylist = SongsPlaylist(playlistName: name);
-            int songsAdded = 0;
-            int invalidSongs = 0;
-            for (String path in paths) {
-                // Find the corresponding Song object from the master collection
-                int songIndex = masterSongPlaylist.getCurrentPlaylistSongs().indexWhere((s) => s.assetPath == path);
-                if (songIndex == -1){ //not found. 
-                    invalidSongs++;
-                    continue; 
-                }  
-                Song validSong = masterSongPlaylist.getCurrentPlaylistSongs()[songIndex];
-                newPlaylist.addSong(validSong);
-                songsAdded++;
-            }
+
+            final List<Song> validSongs = commonValidSongs(paths);
+            newPlaylist.replaceSongs(validSongs); 
+            int songsAdded = validSongs.length; 
+            int invalidSongs = paths.length - songsAdded; 
+
             allSongPlaylists[name] = newPlaylist;
             IO.t('Loaded playlist "$name" with $songsAdded songs.');
             // No invalid songs => next playlist. 
             if (invalidSongs == 0 ) continue;   
-            // Otherwise rewrite this valid playlist back to the file
+            // Otherwise rewrite this valid playlist back to the file.
             File currentPlaylistFile = await SongSaver.getPlaylistFile(playlistName: name);
             await SongSaver.rewriteSavedSongPaths(newPlaylist.getAllPathsInPlaylist(), songPathFile: currentPlaylistFile);
             IO.w('Spotted $invalidSongs invalid Song. Write back to playlist "$name" completed!');
 
         }
         playlistNotifier.setPlaylistsAndNotifyListeners(allSongPlaylists);
+    }
+
+    /// Load a single playlist, specify by the [playlistName] from [allSongPlaylists] and remove all invalid songs. 
+    /// 
+    /// A song is considered invalid when its assetPath cannot be found in [SongSaver.masterFileNameExt].txt file.
+    /// If assetPath can be matched with data in the [SongSaver.masterFileNameExt].txt, a new Song object with that path will be add to the playlist. 
+    /// Trigger write back to file if there are invalid songs. 
+    static Future<void> loadPlaylist({required String playlistName}) async {
+        if(!allSongPlaylists.containsKey(playlistName)) return; 
+
+        List<String> paths = await SongSaver.loadSavedPlaylist(playlistName: playlistName);
+        SongsPlaylist newPlaylist = SongsPlaylist(playlistName: playlistName);
+
+        final List<Song> validSongs = commonValidSongs(paths);
+        newPlaylist.replaceSongs(validSongs); 
+        int songsAdded = validSongs.length; 
+        int invalidSongs = paths.length - songsAdded; 
+
+        allSongPlaylists[playlistName] = newPlaylist;
+        IO.t('Loaded playlist "$playlistName" with $songsAdded songs.');
+        
+        // No invalid songs => notify then return. 
+        if (invalidSongs == 0 ) {
+            playlistNotifier.updatePlaylist(playlistName, newPlaylist);
+            return; 
+        }   
+        
+        // Otherwise rewrite this valid playlist back to the file. 
+        File currentPlaylistFile = await SongSaver.getPlaylistFile(playlistName: playlistName);
+        await SongSaver.rewriteSavedSongPaths(newPlaylist.getAllPathsInPlaylist(), songPathFile: currentPlaylistFile);
+        IO.w('Spotted $invalidSongs invalid Song. Write back to playlist "$playlistName" completed!');
+        
+        playlistNotifier.updatePlaylist(playlistName, newPlaylist);
+        return; 
+    }
+
+    /// Return the common Song(s) between the [currentPlaylistSongs] and the [masterSongPlaylist].
+    /// 
+    /// These common Song(s) are Song object(s) from the masterSongPlaylist, not from the currentPlaylistSongs.  
+    static List<Song> commonValidSongs(List<String> currentPlaylistPaths){
+        if (currentPlaylistPaths.isEmpty || SongRepository.masterSongPlaylist.getCurrentPlaylistSongs().isEmpty) return [];
+        final Set<String> assetPathSet = currentPlaylistPaths.toSet();        
+        return SongRepository.masterSongPlaylist.getCurrentPlaylistSongs()
+            .where((song) => assetPathSet.contains(song.assetPath))
+            .toList();
     }
 
     /// Loads the [masterList.txt] in the application directory, and retrieve the [Song.assetPath] stored in that file. 

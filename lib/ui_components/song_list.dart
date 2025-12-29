@@ -36,6 +36,12 @@ class SongList extends StatelessWidget {
     /// Highlight is only enable when the song playing originates from BOTH the active playlist and the current playlist. 
     @override
     Widget build(BuildContext context) {
+        return currentPlaylist.getCurrentPlaylistSongs().isEmpty 
+            ? _placeholderIfNoSongFound()
+            : _songsList(context);
+    }
+
+    Widget _songsList(BuildContext context){
         // The name of the playlist are guaranteed to be unique => use as our identifier. 
         final bool isSamePlaylist = (currentPlaylist.playlistName == SongControlsManager.activeSongsPlaylist.playlistName);
         return CustomScrollView(
@@ -52,6 +58,19 @@ class SongList extends StatelessWidget {
                 ),
                 SliverPadding(padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom + bottomPadding)),
             ],
+        );
+    }
+
+    Widget _placeholderIfNoSongFound(){
+        return const Center(
+            child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                    "No songs found. Click the 'Add Songs' button to create one!",
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                    textAlign: TextAlign.center,
+                ),
+            ),
         );
     }
 

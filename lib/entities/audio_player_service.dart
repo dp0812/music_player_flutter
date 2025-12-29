@@ -57,7 +57,7 @@ class AudioPlayerService {
 
     /// Jump to the time specified by the parameter position. 
     /// 
-    /// Use try catch due to sometime (rare) there is a future timeout exception that I do not know how to reproduce.
+    /// Remarks: Future timeout exception happen when user seek but current song is null.
     Future<void> seek(Duration position) async {
         try{
             await _audioPlayer.seek(position);

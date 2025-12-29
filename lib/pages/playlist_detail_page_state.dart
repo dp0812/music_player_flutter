@@ -6,7 +6,6 @@ import 'song_detail_page.dart';
 import '../entities/song_controls_manager.dart';
 import '../entities/song.dart';
 import '../entities/song_repository.dart';
-import '../entities/song_saver.dart';
 import '../entities/song_search_delegate.dart';
 import '../ui_components/music_player_dock.dart';
 import '../ui_components/song_list.dart';
@@ -200,38 +199,24 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
 
     /// Load available songs and synchronize playback state. 
     /// 
-    /// This is significantly more complex than SongScreenState, due to the sub list being built from the master list. 
-    /// The sad fact of this version is that for this to trigger, one need to go back to the playlist detail page again. 
+    /// Remove any invalid songs spotted. 
     Future<void> _loadAndSynchronizeSongs() async {
-        if (!mounted || _isReloading) return; // Prevent multiple rapid reloads
+        // Prevent multiple rapid reloads.
+        if (!mounted || _isReloading) return;
+        
         _isReloading = true;
-        setState(() {_isLoading = true;});
+        setState(() => _isLoading = true);
 
         try {
-            // First load songs to clean master list
+            // First load songs to clean master list.
             await SongRepository.loadSongs();
             
-            // Clean current playlist of any songs not in master list
             final currentPlaylistSongs = widget.playlist.getCurrentPlaylistSongs();
-            final validSongs = currentPlaylistSongs.where((song) {
-                return SongRepository.masterSongPlaylist.getCurrentPlaylistSongs().any((s) => s.assetPath == song.assetPath);
-            }).toList();
+            final validSongs = commonValidSongs(currentPlaylistSongs);
             
-            // If playlist has invalid songs, update it
-            if (validSongs.length != currentPlaylistSongs.length) {
-
-                widget.playlist.replaceSongs(validSongs);
-                IO.w("Replacement triggered, content of ${widget.playlist.playlistName}:");
-                for (Song someSong in widget.playlist.getCurrentPlaylistSongs()){
-                    IO.d(someSong.assetPath);
-                }
-                // Write this update to disk.
-                await SongSaver.savePlaylist(
-                    playlistName: widget.playlist.playlistName,
-                    songs: validSongs
-                );    
-                // Reload playlists to update SongRepository's map
-                await SongRepository.loadPlaylists();
+            // If playlist has invalid songs, only reload the playlist that is invalid.
+            if (validSongs.length != currentPlaylistSongs.length) { 
+                await SongRepository.loadPlaylist(playlistName: widget.playlist.playlistName);
             }
             
             // Synchronize playback state with the shared controls manager
@@ -248,6 +233,17 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
                 _isReloading = false;
             }
         }
+    }
+    
+    /// Return the common Song(s) between the [currentPlaylistSongs] and the [masterSongPlaylist].
+    /// 
+    /// These common Song(s) are Song object(s) from the masterSongPlaylist, not from the currentPlaylistSongs.  
+    List<Song> commonValidSongs(List<Song> currentPlaylistSongs){
+        if (currentPlaylistSongs.isEmpty || SongRepository.masterSongPlaylist.getCurrentPlaylistSongs().isEmpty) return [];
+        final Set<String> assetPathSet = currentPlaylistSongs.map((song) => song.assetPath).toSet();        
+        return SongRepository.masterSongPlaylist.getCurrentPlaylistSongs()
+            .where((song) => assetPathSet.contains(song.assetPath))
+            .toList();
     }
 
     @override
