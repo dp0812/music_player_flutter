@@ -44,9 +44,9 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
                         title: Text(widget.playlist.playlistName),
                         actions: [
                             // Search song button. 
-                            ElevatedButton(
+                            IconButton(
                                 onPressed: _searchSong,
-                                child: const Icon(Icons.search), 
+                                icon: const Icon(Icons.search), 
                             ),
                             // Add song button. 
                             IconButton(
@@ -92,6 +92,7 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
                             currentSong: widget.controlsManager.currentSong,
                             onSongTap: _handleSongTap,
                             onSongButtonTap: _handleSongButtonTap, 
+                            isPlaying: widget.controlsManager.audioService.isPlaying,
                         );
                     }
                 ),

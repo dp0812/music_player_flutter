@@ -69,6 +69,7 @@ class PlaylistsList extends StatelessWidget {
             title: playlist.playlistName, 
             subtitle: "${playlist.songCount} song(s)", 
             onTap: () => onPlaylistTap(playlist),
+            // alpha: 0.09,
             trailing: 
                 Row(
                     spacing: 2.0,

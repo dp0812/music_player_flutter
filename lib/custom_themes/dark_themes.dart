@@ -13,7 +13,8 @@ class DarkThemes {
     static ThemeData get darkGreen => _createDarkTheme(
             primaryColor: Colors.teal.shade800,
             secondaryColor: Colors.teal.shade50,
-            backgroundColor: Colors.grey.shade900,
+            backgroundColor: Colors.black,
+            islandColor: Colors.grey.shade900,
             highlightColor: Colors.deepPurple.shade600,
             name: "Thanh Tiêu",
         );
@@ -22,7 +23,8 @@ class DarkThemes {
     static ThemeData get darkBlue => _createDarkTheme(
             primaryColor: Colors.blue.shade100,
             secondaryColor: Colors.grey.shade50,
-            backgroundColor: Colors.grey.shade900,
+            backgroundColor: Colors.black,
+            islandColor: Colors.grey.shade900,
             highlightColor: Colors.amber.shade600,
             name: "Bình Minh",
         );
@@ -31,7 +33,8 @@ class DarkThemes {
     static ThemeData get darkRed => _createDarkTheme(
             primaryColor: Color(0xFFB0BEC5),  
             secondaryColor: Colors.red.shade50,
-            backgroundColor: Colors.grey.shade900,
+            backgroundColor: Colors.black,
+            islandColor: Colors.grey.shade900,
             highlightColor:  Color(0xFFB71C1C),  
             name: "Xích Ngọc",
         );
@@ -40,7 +43,8 @@ class DarkThemes {
     static ThemeData get darkGrey => _createDarkTheme(
             primaryColor: Colors.grey.shade700,
             secondaryColor: Colors.grey.shade300,
-            backgroundColor: Colors.grey.shade900,
+            backgroundColor: Colors.black,
+            islandColor: Colors.grey.shade900,
             highlightColor: Colors.cyan.shade600,
             name: "Hàn Nguyệt",
         );
@@ -49,7 +53,8 @@ class DarkThemes {
     static ThemeData get whiteIce => _createDarkTheme(
             primaryColor: Colors.white,
             secondaryColor: Colors.grey.shade300,
-            backgroundColor: Colors.grey.shade900,
+            backgroundColor: Colors.black,
+            islandColor: Colors.grey.shade900,
             highlightColor: Colors.cyan.shade600,
             name: "Thắng Mai",
         );
@@ -78,6 +83,7 @@ class DarkThemes {
         required Color secondaryColor,
         required Color backgroundColor,
         required Color highlightColor,
+        required Color islandColor,
         required String name,
         bool useMaterial3 = true,
     }) {
@@ -89,17 +95,17 @@ class DarkThemes {
                 secondary: secondaryColor,
                 surface: backgroundColor,
                 onPrimary: highlightColor,
-                onSecondary: Colors.black,
+                onSecondary: islandColor,
                 onSurface: Colors.grey.shade300, 
             ),
             navigationBarTheme: NavigationBarThemeData(
                 indicatorColor: primaryColor, // Color to highlight the destination on the bottom Navigation Bar. 
             ),  
             scaffoldBackgroundColor: backgroundColor,
-            appBarTheme: AppBarTheme(
-                backgroundColor: primaryColor, // Colors.transparent could also be nice to hide the bar. 
+            appBarTheme: AppBarTheme( 
+                backgroundColor: Colors.transparent,
                 foregroundColor: highlightColor, // Colors.white is always nice for dark theme based text. 
-                elevation: 0,
+                elevation: 2,
                 centerTitle: true,
                 scrolledUnderElevation: 4,
             ),
@@ -109,10 +115,21 @@ class DarkThemes {
             ),
             elevatedButtonTheme: ElevatedButtonThemeData(
                 style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryColor,
-                    foregroundColor: highlightColor, // Colors.white is always nice for dark theme based text. 
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    backgroundColor: highlightColor.withValues(alpha: 0.7), // Slight tinted glass effect. 
+                    foregroundColor: Colors.white, // Colors.white is always nice for dark theme based text. 
+                    shape: StadiumBorder(),  // Fully rounded. 
+                    elevation: 8,
+                    shadowColor: highlightColor.withValues(alpha: 0.3),  // Colored shadow => depth. 
+                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 ),
+            ),
+            iconButtonTheme: IconButtonThemeData(
+                style: IconButton.styleFrom(
+                    backgroundColor: Colors.transparent, 
+                    foregroundColor: secondaryColor, 
+                    shape: CircleBorder(),
+                    hoverColor: Colors.white10 // This should not be overwhelming. 
+                )
             ),
             textButtonTheme: TextButtonThemeData(
                 style: TextButton.styleFrom(foregroundColor: secondaryColor),

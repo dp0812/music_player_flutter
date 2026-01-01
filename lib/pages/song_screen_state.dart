@@ -1,15 +1,16 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:music_player/entities/song_search_delegate.dart';
-import 'package:music_player/ui_components/delete_song.dart';
 
 import 'song_detail_page.dart';
 import 'song_screen.dart';
 import '../entities/song.dart';
 import '../entities/song_repository.dart';
+import '../entities/song_search_delegate.dart';
 import '../entities/song_controls_manager.dart';
+import '../ui_components/delete_song.dart';
 import '../ui_components/music_player_dock.dart';
 import '../ui_components/song_list.dart';
+import '../ui_components/song_management_bar.dart';
 
 /// Provides a list view of the current songs in the playlist alongside with the playback controls dock and the progress bar.
 class SongScreenState extends State<SongScreen> {
@@ -39,9 +40,9 @@ class SongScreenState extends State<SongScreen> {
                         title: const Text("Home"),
                         // Search song button. 
                         actions: [
-                            ElevatedButton(
+                            IconButton(
                                 onPressed: _searchSong,
-                                child: const Icon(Icons.search), 
+                                icon: const Icon(Icons.search), 
                             ),
                         ],
                     ),
@@ -49,9 +50,12 @@ class SongScreenState extends State<SongScreen> {
                         children: [
                             Column(
                                 children: [
-                                    _buildButtonsRow(),
-                                    // A thin line to separate the buttons and the list. 
-                                    const Divider(height: 0), 
+                                    SongManagementBar(
+                                        actionOneLabel: "Add Songs",
+                                        actionTwoLabel: "Scan Folder",
+                                        buttonActionOne: _handleAddSong,
+                                        buttonActionTwo: _handleAddMusicDirectory,
+                                    ),
                                     _buildSongsListWithBottomPadding(),
                                 ],
                             ),
@@ -60,28 +64,6 @@ class SongScreenState extends State<SongScreen> {
                     ),
                 );
             },
-        );
-    }
-
-    /// 2 buttons, add song and scan folder to add all songs in the folder.
-    Widget _buildButtonsRow(){
-        return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                    ElevatedButton.icon(
-                        onPressed: _handleAddSong,
-                        icon: const Icon(Icons.playlist_add, size: 18),
-                        label: const Text("Add"),
-                    ),
-                    ElevatedButton.icon(
-                        onPressed: _handleAddMusicDirectory, 
-                        icon: const Icon(Icons.folder, size: 18),
-                        label: const Text("Folder"),
-                    ),
-                ],
-            ),
         );
     }
 
@@ -95,6 +77,7 @@ class SongScreenState extends State<SongScreen> {
                 currentSong: widget.controlsManager.currentSong,
                 onSongTap: _handleSongTap,
                 onSongButtonTap: _handleSongButtonTap,
+                isPlaying: widget.controlsManager.audioService.isPlaying,
             ),
         );
     }

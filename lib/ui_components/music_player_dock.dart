@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:music_player/ui_components/now_playing_display.dart';
 
+import 'now_playing_display.dart';
 import '../entities/audio_player_service.dart';
 import '../entities/song.dart';
 
@@ -197,8 +197,8 @@ class MusicPlayerDockState extends State<MusicPlayerDock> {
         final loopInactiveColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.9);
         
         final baseButtonBackground = isDark 
-            ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)
-            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4); 
+            ? theme.colorScheme.onSecondary
+            : theme.colorScheme.onSecondary; 
 
         return LayoutBuilder(
             builder: (context, constraints) {

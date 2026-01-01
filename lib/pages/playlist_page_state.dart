@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'playlist_detail_page.dart';
 import 'playlist_page.dart';
+import '../ui_components/song_management_bar.dart';
 import '../entities/song_playlist.dart'; 
 import '../entities/song_repository.dart';
 import '../ui_components/add_playlist.dart';
@@ -37,9 +38,10 @@ class PlaylistPageState extends State<PlaylistPage> {
                         children: [
                             Column(
                                 children: [
-                                    _buildButtonsRow(),
-                                    // A thin line to separate the buttons and the list. 
-                                    const Divider(height: 0), 
+                                    SongManagementBar(
+                                        actionOneLabel: "New Playlist",
+                                        buttonActionOne: _addPlaylistByName,
+                                    ),
                                     _buildPlaylistsListWithBottomPadding(),
                                 ],
                             ),
@@ -48,24 +50,6 @@ class PlaylistPageState extends State<PlaylistPage> {
                     ),
                 );
             },
-        );
-    }
-
-    /// Button row, but has exactly 1 button: add new playlist. 
-    Widget _buildButtonsRow(){
-        return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                    // Add Playlist Button.
-                    ElevatedButton.icon(
-                        onPressed: _addPlaylistByName,
-                        icon: const Icon(Icons.playlist_add, size: 18),
-                        label: const Text("New Playlist"),
-                    ),
-                ],
-            ),
         );
     }
 
