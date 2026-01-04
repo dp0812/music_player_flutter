@@ -3,19 +3,16 @@ import 'package:flutter/material.dart';
 
 import 'playlist_detail_page.dart';
 import 'playlist_page.dart';
-import '../ui_components/song_management_bar.dart';
 import '../entities/song_playlist.dart'; 
 import '../entities/song_repository.dart';
 import '../ui_components/add_playlist.dart';
 import '../ui_components/delete_playlist.dart';
-import '../ui_components/playlists_list.dart'; 
 import '../ui_components/music_player_dock.dart';
+import '../ui_components/playlists_list.dart'; 
+import '../ui_components/rename_playlist.dart';
+import '../ui_components/song_management_bar.dart';
 
-/// This page allows the user to still have controls over the song that is being played. 
-/// 
-/// This controls include 2 elements: 
-/// 1. The playback controls (your buttons sitting on the dock)
-/// 2. The progress bar (on top - will be changed in the future to be close to the playback controls).
+/// This page display an overview of all playlist(s) and give user the music dock to control the song being played. 
 class PlaylistPageState extends State<PlaylistPage> {
 
     @override
@@ -61,6 +58,7 @@ class PlaylistPageState extends State<PlaylistPage> {
             child: PlaylistsList(
                 onPlaylistTap: _gotoPlaylistDetailPage,
                 onPlaylistButtonTap: _deletePlaylist,
+                onPlaylistButtonTapTwo: _renamePlaylist,
             ),
         );
     }
@@ -131,6 +129,18 @@ class PlaylistPageState extends State<PlaylistPage> {
             context: context,
             builder: (BuildContext context) {
                 return AddPlaylist(context: context);
+            },
+        );
+
+        setState(() {/* Rebuild UI */});
+    }
+    
+    /// Prompt user to enter new playlist name to replace the old one. 
+    void _renamePlaylist(SongsPlaylist playlist) async {
+        await showDialog(
+            context: context,
+            builder: (BuildContext context) {
+                return RenamePlaylist(context: context, currentPlaylistName: playlist.playlistName);
             },
         );
 

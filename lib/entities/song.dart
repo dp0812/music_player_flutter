@@ -34,31 +34,38 @@ class Song {
     Future<void> _readMetadata() async {
         try {
             Tag? tag = await AudioTags.read(assetPath);
-            currentTag = tag; //this tag contains ALL metadata info. 
-            // Extract album art from pictures
-            if (tag?.pictures != null && tag!.pictures.isNotEmpty) {
-                // Try to find front cover first
-                Picture? cover = tag.pictures.firstWhere(
+            currentTag = tag; // This tag contains ALL metadata info. 
+            // Extract album art from pictures.
+            if (currentTag == null) return; 
+
+            if (currentTag!.pictures.isNotEmpty) {
+                // Try to find front cover first.
+                Picture? cover = currentTag!.pictures.firstWhere(
                     (picture) => picture.pictureType == PictureType.coverFront,
-                    orElse: () => tag.pictures.first,
+                    orElse: () => currentTag!.pictures.first,
                 );
                 albumArtBytes = cover.bytes;
             } else {
                 albumArtBytes = null;
             }
 
-            if (currentTag != null){
-                if (currentTag?.trackArtist != null) {
-                    artist = currentTag!.trackArtist;
-                } else if (currentTag?.albumArtist != null ){
-                    artist = currentTag!.albumArtist;
-                }
+            if (currentTag?.trackArtist != null) {
+                artist = currentTag!.trackArtist;
+            } else if (currentTag?.albumArtist != null ){
+                artist = currentTag!.albumArtist;
             }
-            errorMessage = null;
+            
         } catch (e) {
             errorMessage = "Error reading metadata: $e";
             currentTag = null;
             albumArtBytes = null;
         }
+    }
+
+    /// Return true if name or assetPath is the same.
+    /// 
+    /// This is due to the behavior of the file picker in android platform.  
+    bool isEqual(Song someSong){
+        return ((someSong.assetPath == assetPath) || (someSong.title == title));
     }
 }

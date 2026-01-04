@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'dart:collection';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 
+import 'android_file_system.dart';
 import 'song_saver.dart';
 import '../entities/playlist_notifier.dart';
 import '../entities/song_playlist.dart';
@@ -19,8 +19,10 @@ class SongRepository {
     static final PlaylistNotifier playlistNotifier = PlaylistNotifier();
     /// Store all the Song objects in the supplier directory. Please make reference to this to the full song list. 
     static SongsPlaylist masterSongPlaylist = SongsPlaylist(playlistName: SongSaver.masterFileNameExt);
-    /// Each playlist name is a key, connect to the list of songs. 
+    /// Each playlist name is a key, connect to a [SongsPlaylist] which you can call [getCurrentPlaylistSongs()] to acquire the list of Songs. 
     static Map<String,SongsPlaylist> allSongPlaylists = {};
+    /// Class must be used statically. 
+    SongRepository._();
 
     /// Load playlist data in the application directory and populate the map [SongRepository.allSongPlaylists], removing all invalid songs. 
     /// 
@@ -180,6 +182,57 @@ class SongRepository {
         return true;
     }
 
+    /// Rename a playlist with name [oldName] to [newName], replacing all dot(s) and forbidden symbols (i) with empty string.
+    /// 
+    /// 1. If there exist another playlist with [newName], rename will fail.  
+    /// 2. If the following is false, then rename will fail.
+    /// ```dart 
+    /// allSongPlaylists.containsKey(oldName) 
+    /// ```
+    /// 3. The newly renamed playlist will be write to disk, and the old one will be remove from [allSongPlaylists].
+    /// 4. Remarks: Underscore are treated as space when read from disk. Use this with caution.
+    static Future<bool> renamePlaylist(String oldName, String newName) async {
+        // The following forbidden symbols (i) are strictly NOT allowed, and WILL be replaced with  empty string.  
+        // < (less than)
+        // > (greater than)
+        // : (colon)
+        // " (double quote)
+        // / (forward slash)
+        // \ (backslash) -> this in dart needs to be \\ 
+        // | (vertical bar or pipe)
+        // ? (question mark)
+        // * (asterisk)
+        // Remove all invalid symbols - trim again after removing. Example: 'test 03 ? ' => 'test 03' (we save as test_03.txt though)
+        final normalizedName = newName.trim().replaceAll(RegExp(r'[<>:"/\\|?*.]'), '').trim();
+        // Forbid the usage of masterList as a name. 
+        if (normalizedName == SongSaver.masterFileNameExt){
+            IO.w('"$normalizedName" is a preserved name. Please use other name.');
+            return false; 
+        }
+        // Forbid dupplication. 
+        if (allSongPlaylists.containsKey(normalizedName)) {
+            IO.t('Playlist "$normalizedName" already exists.');
+            return false;
+        }
+        // Check existence of old playlist. 
+        if (!allSongPlaylists.containsKey(oldName)){
+            IO.w("Can not find old playlist with name $oldName");
+            return false; 
+        }
+
+        // Create and store the new playlist, with the songs from old playlist. 
+        final newPlaylist = SongsPlaylist(playlistName: normalizedName, songLists: allSongPlaylists[oldName]!.getCurrentPlaylistSongs());
+        // Remove the old playlist from map. 
+        allSongPlaylists.remove(oldName);
+        // Add the new playlist to map. 
+        allSongPlaylists[normalizedName] = newPlaylist;
+        IO.t('Created new playlist: "$normalizedName"');
+        // Write this playlist to file.
+        await SongSaver.renamePlaylist(currentPlaylistName: oldName ,newPlaylistName: normalizedName);
+        playlistNotifier.setPlaylistsAndNotifyListeners(allSongPlaylists);
+        return true;
+    }
+
     /// Delete a playlist with [name] and notify all listeners. 
     /// 
     /// This both remove the playlist from [allSongPlaylists] and from the file system.
@@ -245,16 +298,17 @@ class SongRepository {
     /// Currently only call by the SongScreenState, to add to the masterList. 
     static Future<int> addSongsFromUserSelection() async {
         try {
-            if (Platform.isAndroid || Platform.isIOS) {
-                await Permission.audio.request();
+            // This is mandatory for both picking and scanning on Android.
+            if (Platform.isAndroid){
+                await AndroidFileSystem.requestAndroidPermission();
             }
-            
+
             FilePickerResult? result = await FilePicker.platform.pickFiles(
                 allowMultiple: true, 
                 type: FileType.custom,
-                allowedExtensions: ['mp3'], // Filter specifically for MP3 files
+                allowedExtensions: ['mp3'], // Filter specifically for MP3 files.
             );
-            // User canceled the picker
+            // User canceled the picker.
             if (result == null) return 0;
             // Otherwise keep track of how many new song added. 
             int songsAdded = 0;
@@ -263,7 +317,7 @@ class SongRepository {
                 final String filePath = platformFile.path!;
                 final String fileName = p.basenameWithoutExtension(filePath); 
                 final Song newSong = await Song.create(title: fileName, assetPath: filePath);
-                if (masterSongPlaylist.getCurrentPlaylistSongs().any((song) => song.assetPath == filePath)){ // Any dupplicate path exits => skip. 
+                if (masterSongPlaylist.getCurrentPlaylistSongs().any((song) => newSong.isEqual(song))){ // Any dupplicate path exits => skip. 
                     IO.t("Skipped adding duplicate song: ${newSong.title}");
                     continue;
                 }
@@ -283,7 +337,12 @@ class SongRepository {
     /// 
     /// This will recursively search the directory AND any other sub directories to get all the files but ONLY .mp3 files will be added. 
     static Future<int> fetchSongsFromUserDirectory() async {
-         try {            
+        try {
+            // This is mandatory for both picking and scanning on Android.
+            if (Platform.isAndroid){
+                await AndroidFileSystem.requestAndroidPermission();
+            }
+
             String? result = await FilePicker.platform.getDirectoryPath();
             // User canceled the picker
             if (result == null) return 0;
@@ -296,11 +355,11 @@ class SongRepository {
             // Otherwise keep track of how many new song added. 
             int songsAdded = 0;
             Stream<FileSystemEntity> potentialSongsList = currentDir.list(recursive: true, followLinks: false);
-            List<String> mp3PathsList = await _getMP3FilesFromStream(potentialSongsList);
+            List<String> mp3PathsList = await getMP3FilesFromStream(potentialSongsList);
             for (String somePath in mp3PathsList){
                 final String fileName = p.basenameWithoutExtension(somePath); 
                 final Song newSong = await Song.create(title: fileName, assetPath: somePath);
-                if (masterSongPlaylist.getCurrentPlaylistSongs().any((song) => song.assetPath == somePath)){ // Any dupplicate path exits => skip. 
+                if (masterSongPlaylist.getCurrentPlaylistSongs().any((song) => newSong.isEqual(song))){ // Any dupplicate path exits => skip. 
                     IO.t("Skipped adding duplicate song: ${newSong.title}");
                     continue;
                 }
@@ -308,7 +367,7 @@ class SongRepository {
                 masterSongPlaylist.getCurrentPlaylistSongs().add(newSong); 
                 await SongSaver.saveSongPath(newSong);
                 songsAdded++;
-                if (songsAdded % 10 == 0) {IO.i("Added $songsAdded song(s) so far...");}
+                if (songsAdded % 10 == 0) IO.i("Added $songsAdded song(s) so far...");
             }
             IO.i("Scanning completed. Total song(s) added: $songsAdded song(s)!");
             return songsAdded;
@@ -318,11 +377,23 @@ class SongRepository {
         }
     }
 
+    /// Scan 1st the music directory, then the download directory (fallback).
+    /// 
+    /// This is currently not used (as a button) in the app, but have been tested. 
+    /// I intend for this to be a part of the pre-fetch folder in the setting. 
+    static Future<int> autoScanFolders() async {
+        /// For Android, we need a different approach due to some strange permission problem. 
+        if (Platform.isAndroid) {
+            return await AndroidFileSystem.scanAndroidMusicDirectory();
+        }
+        return -1; 
+    }
+
     /// Helper to filter only paths with .mp3 files. 
     /// 
     /// It could be more efficient to process from stream directly for large directory (explained by some stack overflow answer) but I dislike stream. 
     /// Thus, we will convert them for my own sanity. 
-    static Future<List<String>> _getMP3FilesFromStream(Stream<FileSystemEntity> entityStream) async {
+    static Future<List<String>> getMP3FilesFromStream(Stream<FileSystemEntity> entityStream) async {
         List<String> mp3Paths = [];
         try {
             // This construct of await for is "the" way of processing stream. Link: https://dart.dev/libraries/async/using-streams
@@ -356,7 +427,7 @@ class SongRepository {
         if (playlistName == masterSongPlaylist.playlistName){
             IO.w("Song to be delete from masterList = ${newSong.assetPath}");
             // Remove song with same path. 
-            masterSongPlaylist.getCurrentPlaylistSongs().removeWhere((s) => s.assetPath == newSong.assetPath);
+            masterSongPlaylist.getCurrentPlaylistSongs().removeWhere((s) => s.isEqual(newSong));
             masterSongPlaylist.updateSongCount();
             // Write to file. 
             await SongSaver.savePlaylist(playlistName: masterSongPlaylist.playlistName, songs: masterSongPlaylist.getCurrentPlaylistSongs());
@@ -369,7 +440,7 @@ class SongRepository {
         if (allSongPlaylists[playlistName] == null) return;
 
         // Remove song with same path. 
-        allSongPlaylists[playlistName]!.getCurrentPlaylistSongs().removeWhere((s) => s.assetPath == newSong.assetPath);
+        allSongPlaylists[playlistName]!.getCurrentPlaylistSongs().removeWhere((s) => s.isEqual(newSong));
         allSongPlaylists[playlistName]!.updateSongCount();
         // Write to file. 
         await SongSaver.savePlaylist(playlistName: playlistName, songs: allSongPlaylists[playlistName]!.getCurrentPlaylistSongs());

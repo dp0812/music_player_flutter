@@ -16,14 +16,14 @@ class SongSaver {
     /// For every functions that intends to write anything to file, you MUST use this system separator. DO NOT USE '\n'
     static String separator = Platform.lineTerminator;
     static File? _masterFile;
-
+    /// Class must be used statically. 
     SongSaver._();
 
     /// Will create a file with [playlistName] as name, replacing spaces with underscores. 
     /// Write all path of Song objects in [songs] to this file, separated by the separator (system dependent). 
     /// 
     /// 1. If [songs] is empty, write an empty String to the file. 
-    /// 2. [playlistName] MUST NOT have any file extension, and MUST NOT contain any invalid symbols (i). 
+    /// 2. [playlistName] MUST NOT have any file extension. 
     /// 3. [songs] MUST contain only valid songs - with no corrupted paths. 
     /// 4. Remarks: This design is intentional - since we save it here by replacing spaces with underscores, when read with [listPlaylistNames], it is reasonable to do the inverse, that is, replacing underscores with spaces. 
     static Future<void> savePlaylist({required String playlistName, List<Song>? songs}) async {
@@ -33,6 +33,27 @@ class SongSaver {
             final content = paths.join(separator) + (paths.isNotEmpty ? separator : '');
             await file.writeAsString(content);
             IO.t("Saved playlist '$playlistName' with ${paths.length} songs");
+        } catch (e) {
+            IO.e("Error saving playlist: ", error: e);
+        }
+    }
+
+    /// Will create a file with [newPlaylistName] as name, replacing spaces with underscores. 
+    /// 
+    /// 1. [newPlaylistName] MUST NOT have any file extension. 
+    /// 2. Whatever content exist in current file remains the same, where current file is obtained by: 
+    /// ```dart
+    /// getPlaylistFile(playlistName: currentPlaylistName) 
+    /// ``` 
+    /// 3. Remarks: This design is intentional - since we save it here by replacing spaces with underscores, when read with [listPlaylistNames], it is reasonable to do the inverse, that is, replacing underscores with spaces. 
+    static Future<void> renamePlaylist({required String currentPlaylistName, required String newPlaylistName}) async {
+        try {
+            final File currentPlaylistFile = await getPlaylistFile(playlistName: currentPlaylistName);
+            final String pathWithoutName = p.dirname(currentPlaylistFile.path);
+            final String formattedNameWithNoSpace = "${newPlaylistName.replaceAll(' ', '_')}.txt"; 
+            final String newPath = p.join(pathWithoutName, formattedNameWithNoSpace);
+            await currentPlaylistFile.rename(newPath);
+            IO.t("$currentPlaylistName rename to $newPlaylistName and saved with path: $newPath");
         } catch (e) {
             IO.e("Error saving playlist: ", error: e);
         }

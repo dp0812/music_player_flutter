@@ -19,3 +19,8 @@ Note that these following situations do not break the application (no red error 
         - User (reader of this code) should be able to tell, on a very high level, what this code is doing (and the visual of this code), with a brief glance over the first k lines of the code. 
         - Also, there is a very high chance that the user is inclined towards making UI changes, rather than logical changes (since you can see the effect immediately), then putting the build function on the top is more helpful.   
 
+- Remark 4: 
+    - Permission problem is only tested on android.
+    - If granted audio permission (WHICH IS THE ONLY THING THIS APP ASK), the file picker for folder will work. Also the auto scan from android_file_system.dart will work. 
+    - If not granted, or permission is removed from the AndroidManifest.xml in android/app/src/main, then it will for sure fail. 
+
