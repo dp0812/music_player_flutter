@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 import 'album_art.dart';
 import 'custom_list_tile.dart';
 import 'rotating_disc.dart';
+import 'trailing_row.dart';
 import '../entities/song.dart';
 import '../entities/song_controls_manager.dart';
 import '../entities/song_playlist.dart';
@@ -85,7 +85,8 @@ class _SongsListView extends StatelessWidget {
                         childCount: currentPlaylist.getCurrentPlaylistSongs().length,
                         (context, index) {
                             final song = currentPlaylist.getCurrentPlaylistSongs()[index];
-                            bool isSelected = (song.assetPath == (currentSong?.assetPath)) && isSamePlaylist;
+                            // Partial highlight logic (there is more with isPlaying down there). 
+                            bool isSelected = (song.isEqual(currentSong)) && isSamePlaylist;
                             return _SongListItem(
                                 song: song,
                                 isSelected: isSelected,
@@ -153,58 +154,12 @@ class _SongListItem extends StatelessWidget {
                     artHeight: 30,
                   ),
             /// Trailing, including the sound wave. 
-            trailing: _TrailingButtons(
+            trailing: TrailingRow(
                 onSongButtonTap: onSongButtonTap,
                 song: song,
                 isSelected: isSelected,
                 isPlaying: isPlaying,
             ),
-        );
-    }
-}
-
-class _TrailingButtons extends StatelessWidget {
-    final Function(Song)? onSongButtonTap;
-    final Song song;
-    final bool? isSelected; 
-    final bool? isPlaying; 
-
-    const _TrailingButtons({
-        required this.onSongButtonTap,
-        required this.song,
-        required this.isSelected, 
-        required this.isPlaying,
-    });
-
-    @override
-    Widget build(BuildContext context) {
-        return Row(
-            // If not provided the correct function, then we dont display the button.
-            mainAxisSize: MainAxisSize.min,
-            children: [
-                // Playing wave effect (to the left of the delete button).
-                if ((isSelected != null && isSelected == true) && (isPlaying != null && isPlaying == true))
-                    Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
-                        child: SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: SpinKitWave(
-                                color: Theme.of(context).colorScheme.onPrimary,
-                                size: 16,
-                            ),
-                        ),
-                    ),
-                // Delete button, if provided. 
-                if (onSongButtonTap != null)
-                    IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red), 
-                        onPressed: () => onSongButtonTap!(song),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        tooltip: "Delete Song", 
-                    )
-            ]
         );
     }
 }

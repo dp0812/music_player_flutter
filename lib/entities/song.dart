@@ -62,10 +62,11 @@ class Song {
         }
     }
 
-    /// Return true if name or assetPath is the same.
+    /// Return true if name or assetPath is the same, and false if null. 
     /// 
     /// This is due to the behavior of the file picker in android platform.  
-    bool isEqual(Song someSong){
+    bool isEqual(Song? someSong){
+        if (someSong == null) return false; 
         return ((someSong.assetPath == assetPath) || (someSong.title == title));
     }
 }

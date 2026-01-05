@@ -122,7 +122,7 @@ class _PlaylistTile extends StatelessWidget{
                     mainAxisSize: MainAxisSize.min,
                     children: [ 
                         Icon(Icons.more_vert),
-                        const SizedBox(width: 5,),
+                        const SizedBox(width: 3,),
                         if (onPlaylistButtonTapTwo != null)
                         IconButton (
                             icon: const Icon(Icons.edit, color: Colors.blue),
@@ -131,7 +131,6 @@ class _PlaylistTile extends StatelessWidget{
                             constraints: const BoxConstraints(),
                             tooltip: "Rename Playlist", 
                         ),
-                        const SizedBox(width: 5,),
                         if (onPlaylistButtonTap != null)
                         IconButton (
                             icon: const Icon(Icons.delete, color: Colors.red),

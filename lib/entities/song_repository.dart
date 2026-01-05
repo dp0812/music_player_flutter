@@ -90,24 +90,6 @@ class SongRepository {
         return; 
     }
 
-    /// Return the common Song(s) between the [currentPlaylistSongs] and the [masterSongPlaylist].
-    /// 
-    /// These common Song(s) are Song object(s) from the currentPlaylistSongs.  
-    /// Remarks: The order of the original playlist is preserved with LinkedHashMap, but also ensure time complexity constraint. 
-    static List<Song> commonValidSongs(List<String> currentPlaylistPaths){
-        if (currentPlaylistPaths.isEmpty || SongRepository.masterSongPlaylist.getCurrentPlaylistSongs().isEmpty) return [];
-        
-        final LinkedHashMap<String, Song> masterSongMap = LinkedHashMap<String, Song>();
-        for (Song song in SongRepository.masterSongPlaylist.getCurrentPlaylistSongs()) {
-            masterSongMap[song.assetPath] = song;
-        }    
-        
-        return currentPlaylistPaths
-            .where((path) => masterSongMap.containsKey(path))
-            .map((path) => masterSongMap[path]!)
-            .toList();
-    }
-
     /// Loads the [masterList.txt] in the application directory, and retrieve the [Song.assetPath] stored in that file. 
     /// 
     /// Remove all invalid Paths (Path that cannot be found on the current system) 
@@ -317,7 +299,7 @@ class SongRepository {
                 final String filePath = platformFile.path!;
                 final String fileName = p.basenameWithoutExtension(filePath); 
                 final Song newSong = await Song.create(title: fileName, assetPath: filePath);
-                if (masterSongPlaylist.getCurrentPlaylistSongs().any((song) => newSong.isEqual(song))){ // Any dupplicate path exits => skip. 
+                if (masterSongPlaylist.getCurrentPlaylistSongs().any((song) => newSong.isEqual(song))){ // Any dupplicate song exits => skip. 
                     IO.t("Skipped adding duplicate song: ${newSong.title}");
                     continue;
                 }
@@ -359,7 +341,7 @@ class SongRepository {
             for (String somePath in mp3PathsList){
                 final String fileName = p.basenameWithoutExtension(somePath); 
                 final Song newSong = await Song.create(title: fileName, assetPath: somePath);
-                if (masterSongPlaylist.getCurrentPlaylistSongs().any((song) => newSong.isEqual(song))){ // Any dupplicate path exits => skip. 
+                if (masterSongPlaylist.getCurrentPlaylistSongs().any((song) => newSong.isEqual(song))){ // Any dupplicate song exits => skip. 
                     IO.t("Skipped adding duplicate song: ${newSong.title}");
                     continue;
                 }
@@ -426,7 +408,7 @@ class SongRepository {
         // Check if user attempt to delete from masterList. 
         if (playlistName == masterSongPlaylist.playlistName){
             IO.w("Song to be delete from masterList = ${newSong.assetPath}");
-            // Remove song with same path. 
+            // Remove songs that are equals.
             masterSongPlaylist.getCurrentPlaylistSongs().removeWhere((s) => s.isEqual(newSong));
             masterSongPlaylist.updateSongCount();
             // Write to file. 
@@ -436,10 +418,9 @@ class SongRepository {
             return; 
         }
         
-        // Remove songs from other playlists, as usual. 
         if (allSongPlaylists[playlistName] == null) return;
 
-        // Remove song with same path. 
+        // Remove songs that are equals.
         allSongPlaylists[playlistName]!.getCurrentPlaylistSongs().removeWhere((s) => s.isEqual(newSong));
         allSongPlaylists[playlistName]!.updateSongCount();
         // Write to file. 
@@ -451,5 +432,25 @@ class SongRepository {
     static Future<bool> isSongFileAvailable(String path) async {
         final cleanPath = path.trim();
         return await File(cleanPath).exists();
+    }
+
+    /// Return the common Song(s) between the [masterSongPlaylist] and Song(s) that can be created from [currentPlaylistPaths].
+    /// 
+    /// These common Song(s) are Song object(s) from the [masterSongPlaylist.getCurrentPlaylistSongs()].  
+    /// Remarks: The order of the original playlist is preserved with LinkedHashMap, but also ensure time complexity constraint. 
+    /// The checking of the common Song(s) are only done using the [assetPath], NOT the equality check in [Song] class.
+    /// We are guaranteed that Song(s) in [masterSongPlaylist] have unique name AND assetPath, so performing a name check again is redundant.  
+    static List<Song> commonValidSongs(List<String> currentPlaylistPaths){
+        if (currentPlaylistPaths.isEmpty || SongRepository.masterSongPlaylist.getCurrentPlaylistSongs().isEmpty) return [];
+        
+        final LinkedHashMap<String, Song> masterSongMap = LinkedHashMap<String, Song>();
+        for (Song song in SongRepository.masterSongPlaylist.getCurrentPlaylistSongs()) {
+            masterSongMap[song.assetPath] = song;
+        }    
+        
+        return currentPlaylistPaths
+            .where((path) => masterSongMap.containsKey(path)) // Where path is the same. 
+            .map((path) => masterSongMap[path]!) // Swap the path with the corresponding Song object.  
+            .toList();
     }
 }

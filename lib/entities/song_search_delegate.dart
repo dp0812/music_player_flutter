@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'song.dart';
+import '../ui_components/album_art.dart';
+import '../ui_components/custom_list_tile.dart';
 import '../utilities/io_print.dart';
 
 /// Search for the song in the list and let user to click on a song in the search result and play the song. 
@@ -56,10 +58,14 @@ class SongSearchDelegate extends SearchDelegate {
             itemCount: matchingSongs.length,
             itemBuilder: (context, index){
                 Song result = matchingSongs[index];
-                return ListTile(
-                    leading: const Icon(Icons.music_note),
-                    title: Text(result.title, style: TextStyle(fontWeight: FontWeight.bold),),
-                    subtitle: Text(result.artist ?? "Unknown"),
+                return CustomListTile(
+                    leading: AlbumArt(
+                        albumArtBytes: result.albumArtBytes,
+                        artWidth: 30,
+                        artHeight: 30,
+                    ),
+                    title: result.title,
+                    subtitle: result.artist ?? "Unknown",
                     onTap: (){
                         onSongTap(result);
                         close(context, null);

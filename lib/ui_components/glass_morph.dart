@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 /// Add a blur layer and some white to the tile. 
+/// 
+/// Remarks: This is by far the most expensive widget in this project. 
 class GlassMorph extends StatelessWidget{
     final double blur; 
     final double? alpha; 

@@ -38,7 +38,7 @@ class RotatingDisc extends StatefulWidget {
 /// This clock let Flutter calculate the new value and redraw the rotation. Therefore, the following are established: 
 /// 1. Corollary 1: The widget will only rotate when it is BOTH visible AND [isPlaying] == true .
 /// 2. Corollary 2: If in paused mode ([isPlaying] == false), the animation stops, but it position is preserve, and will resume from said position if in play mode ([isPlaying] == true) again.  
-/// 3. Corollary 3: If the widget is dispose (being removed from the widget tree, perhaps due to switching between main pages - SongDetailPage does not count due to Naviagor.push) 
+/// 3. Corollary 3: If the widget is dispose (being removed from the widget tree, perhaps due to switching between main pages - SongDetailPage does not count due to Navigator.push) 
 /// then when it is visible again, the rotation restart entirely - back to the normal position.  
 class RotatingDiscState extends State<RotatingDisc> with SingleTickerProviderStateMixin {
     late AnimationController _controller;

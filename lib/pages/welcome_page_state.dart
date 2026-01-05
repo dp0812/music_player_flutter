@@ -10,7 +10,7 @@ import '../entities/song_controls_manager.dart';
 /// Let user switch between different sections of the app, using the navigation rails. 
 /// 
 /// Page provides unified [AudioPlayerService] and [SongControlsManager] that will be passed to all other pages listed here. 
-/// This ensure the playing of audio consistently across different pages. Currently, there are 2 direct pages - all other pages are sub-pages of these 2: 
+/// This ensure the playing of audio consistently across different pages. Currently, there are 3 direct pages - all other pages are sub-pages of these 3: 
 /// 1. [SongScreen] which display the content of the masterPlaylist - [SongRepository.masterSongPlaylist]. 
 /// 2. [PlaylistPage] which display the overview of all playlists - [SongRepository.allSongPlaylists]. 
 /// 3. [SettingsPage] which display the theme setting and others info. 

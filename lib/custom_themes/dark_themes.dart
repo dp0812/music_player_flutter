@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 /// 2. secondary : secondaryColor
 /// 3. surface : backgroundColor
 /// 4. onPrimary : highlightColor
+/// 5. onSecondary : islandColor
 /// Remarks: Of the current 5, Thanh Tiêu is the greenDark theme from before. 
 class DarkThemes {
     /// To my bestie, who... well she knows what this color is about. 
@@ -142,7 +143,7 @@ class DarkThemes {
             listTileTheme: ListTileThemeData(
                 textColor: secondaryColor,
                 iconColor: secondaryColor,
-                tileColor: Colors.grey.shade900,
+                tileColor: islandColor,
                 selectedColor: highlightColor, // Highlight the text instead. 
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8),),
             ),

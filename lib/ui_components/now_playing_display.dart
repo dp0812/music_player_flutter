@@ -4,7 +4,7 @@ import 'package:marquee/marquee.dart';
 import '../entities/song.dart';
 import '../utilities/misc_formatter.dart';
 
-/// Display info of Song being played, namely: progress bar, song title (optional, expensive marquee effect) and the position - duration (optional).
+/// Display info of Song being played, namely: progress bar, song title (optional, fancy marquee effect that is not that expensive to rebuild) and the position - duration (optional).
 /// 
 /// This widget is used by the PlaybackControls widget - the bar and the buttons on the same dock. 
 /// If [showTitle] = true, position - duration will not be show. Otherwise, position - duration will be display under the progress bar. 
@@ -157,7 +157,7 @@ class NowPlayingDisplay extends StatelessWidget {
                     child: Align(
                         alignment: Alignment.centerRight,
                         child: GestureDetector(
-                            child:Icon(Icons.settings),
+                            child: const Icon(Icons.settings),
                             // If provided and currentSong != null, push the user to the Song Detail Page State of the currentSong. 
                             onTap:() {
                                 if (currentSong != null && pushToDetail != null) pushToDetail!(currentSong!);
