@@ -19,7 +19,7 @@ class AlbumArt extends StatelessWidget{
             width: artWidth,
             height: artHeight,
             decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(16), // 12 
                 boxShadow: [
                     BoxShadow(
                         color: Colors.black.withValues(alpha: 0.1),
@@ -30,7 +30,7 @@ class AlbumArt extends StatelessWidget{
                 color: Theme.of(context).colorScheme.surface , // Same as background color. 
             ),
             child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16), // 12
                 child: _buildAlbumArtImage()
             ),
         );

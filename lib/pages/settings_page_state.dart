@@ -17,23 +17,17 @@ class SettingsPageState extends State<SettingsPage>{
     @override
     Widget build(BuildContext context) {
         final currentTheme = Theme.of(context);
-        // Rebuild when controlsManager changes.
-        return ListenableBuilder(
-            listenable: widget.controlsManager,
-            builder: (context, child) {
-                return Scaffold(
-                    backgroundColor: currentTheme.scaffoldBackgroundColor,
-                    appBar: AppBar(
-                        title: const Text("Settings"),
-                    ),
-                    body: Stack(
-                        children: [
-                            _buildSettingsSections(),
-                            _buildMusicPlayerDock(),
-                        ],
-                    ),
-                );
-            },
+        return Scaffold(
+            backgroundColor: currentTheme.scaffoldBackgroundColor,
+            appBar: AppBar(
+                title: const Text("Settings"),
+            ),
+            body: Stack(
+                children: [
+                    _buildSettingsSections(),
+                    _buildMusicPlayerDock(),
+                ],
+            ),
         );
     }
 
@@ -67,28 +61,16 @@ class SettingsPageState extends State<SettingsPage>{
     /// Normal [MusicPlayerDock] configuration. 
     /// 
     /// Expandable, default in compact mode, showing the title. 
+    /// [MusicPlayerDock] is rebuilt when there are specific changes in order to refresh the progress bar and the title. 
     Widget _buildMusicPlayerDock(){
         return Positioned(
             left: 0, 
             right: 0, 
             bottom: 0, 
             child: MusicPlayerDock(
-                currentSong: widget.controlsManager.currentSong,
-                duration: widget.controlsManager.currentDuration,
-                position: widget.controlsManager.currentPosition,
-                onSeek: widget.controlsManager.handleSeek,
-                pushToDetail: widget.controlsManager.pushToSongDetailPage,
-                
+                controlsManager: widget.controlsManager,
                 audioService: widget.audioService,
-                onNextSong: widget.controlsManager.gotoNextSong, 
-                onPreviousSong: widget.controlsManager.gotoPreviousSong, 
-                onPlayPauseResume: widget.controlsManager.handlePlayResumePause, 
-                onStop: widget.controlsManager.stop,
-                onToggleLoop: widget.controlsManager.toggleLoop,
-                isLooping: widget.controlsManager.isLooping,
-                onToggleRandom: widget.controlsManager.toggleRandom,
-                isRandom: widget.controlsManager.isRandom,
-            ),
+            )
         );
     }
 

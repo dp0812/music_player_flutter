@@ -4,10 +4,11 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 
 import 'android_file_system.dart';
+import 'master_list_notifier.dart';
+import 'playlist_notifier.dart';
 import 'song_saver.dart';
-import '../entities/playlist_notifier.dart';
-import '../entities/song_playlist.dart';
-import '../entities/song.dart';
+import 'song_playlist.dart';
+import 'song.dart';
 import '../utilities/io_print.dart';
 
 /// Holds actual Song objects data. Contain a special master SongsPlaylist named [masterSongPlaylist], and a Map of sub list, named [allSongPlaylists]. 
@@ -17,6 +18,11 @@ class SongRepository {
     /// playlistNotifier.setPlaylistsAndNotifyListeners(allSongPlaylists);
     /// ```
     static final PlaylistNotifier playlistNotifier = PlaylistNotifier();
+    /// After changing [masterSongPlaylist], either value or identity, notify the listner with: 
+    /// ```dart 
+    /// masterListNotifier.setMasterListAndNotifyListeners(masterSongPlaylist);
+    /// ```
+    static final MasterListNotifier masterListNotifier = MasterListNotifier();
     /// Store all the Song objects in the supplier directory. Please make reference to this to the full song list. 
     static SongsPlaylist masterSongPlaylist = SongsPlaylist(playlistName: SongSaver.masterFileNameExt);
     /// Each playlist name is a key, connect to a [SongsPlaylist] which you can call [getCurrentPlaylistSongs()] to acquire the list of Songs. 
@@ -96,6 +102,8 @@ class SongRepository {
     /// and rewrite the [masterList.txt] to contain only valid paths.  
     /// Remove all Song objects containing the invalid paths from the [SongRepository] storage. 
     /// 
+    /// Finally, notify listener with [setMasterListAndNotifyListeners].
+    /// 
     /// Does not update info in the file containing the playlist. Call [loadPlaylists] to do this!
     static Future<void> loadSongs() async {
         masterSongPlaylist.getCurrentPlaylistSongs().clear(); // Clear any previous songs in the list. 
@@ -124,6 +132,8 @@ class SongRepository {
         for (String invalidPath in invalidPathsForRemoval){
             masterSongPlaylist.getCurrentPlaylistSongs().removeWhere((song) => song.assetPath == invalidPath);
         }
+        // Notify UI to rebuild. 
+        masterListNotifier.setMasterListAndNotifyListeners(masterSongPlaylist);
     }
 
     /// Add a new playlist with [name], replacing all dot(s) and forbidden symbols (i) with empty string.
@@ -278,6 +288,7 @@ class SongRepository {
     /// Prompt user to add songs, using the OS file system (song MUST be .mp3 file). 
     /// 
     /// Currently only call by the SongScreenState, to add to the masterList. 
+    /// Before returning (not throwing exception), notify listener with [setMasterListAndNotifyListeners].
     static Future<int> addSongsFromUserSelection() async {
         try {
             // This is mandatory for both picking and scanning on Android.
@@ -308,6 +319,8 @@ class SongRepository {
                 await SongSaver.saveSongPath(newSong);
                 songsAdded++;
             }
+            // Notify UI to rebuild. 
+            masterListNotifier.setMasterListAndNotifyListeners(masterSongPlaylist);
             return songsAdded;
         } catch (e) {
             IO.e("Error selecting files: ", error: e); 
@@ -318,6 +331,7 @@ class SongRepository {
     /// Let user pick a directory from the file system, add all .mp3 files to the master list. 
     /// 
     /// This will recursively search the directory AND any other sub directories to get all the files but ONLY .mp3 files will be added. 
+    /// Before returning (not throwing exception), notify listener with [setMasterListAndNotifyListeners].
     static Future<int> fetchSongsFromUserDirectory() async {
         try {
             // This is mandatory for both picking and scanning on Android.
@@ -352,6 +366,8 @@ class SongRepository {
                 if (songsAdded % 10 == 0) IO.i("Added $songsAdded song(s) so far...");
             }
             IO.i("Scanning completed. Total song(s) added: $songsAdded song(s)!");
+            // Notify UI to rebuild.
+            masterListNotifier.setMasterListAndNotifyListeners(masterSongPlaylist);
             return songsAdded;
         } catch (e) {
             IO.e("Error selecting files: ", error: e); 
@@ -363,10 +379,13 @@ class SongRepository {
     /// 
     /// This is currently not used (as a button) in the app, but have been tested. 
     /// I intend for this to be a part of the pre-fetch folder in the setting. 
+    /// If added song is not 0, notify listener with [setMasterListAndNotifyListeners].
     static Future<int> autoScanFolders() async {
         /// For Android, we need a different approach due to some strange permission problem. 
         if (Platform.isAndroid) {
-            return await AndroidFileSystem.scanAndroidMusicDirectory();
+            int songNum = await AndroidFileSystem.scanAndroidMusicDirectory();
+            if (songNum != 0) masterListNotifier.setMasterListAndNotifyListeners(masterSongPlaylist);
+            return songNum; 
         }
         return -1; 
     }

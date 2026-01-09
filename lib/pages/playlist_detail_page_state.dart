@@ -38,132 +38,130 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
                 body: Center(child: CircularProgressIndicator()),
             );
         }
+        return Scaffold(
+            appBar: AppBar(
+                title: Text(widget.playlist.playlistName),
+                actions: [
+                    // Reorder mode toggle button. 
+                    IconButton(
+                        icon: Icon(
+                        _reorderMode ? Icons.check : Icons.reorder,
+                        color: _reorderMode 
+                            ? Theme.of(context).colorScheme.onPrimary 
+                            : null,
+                        ),
+                        onPressed: _toggleReorderMode,
+                        tooltip: _reorderMode ? "Confirm Order" : "Reorder Songs",
+                    ),
+                    // Search song button, not available in re order mode.  
+                    if (!_reorderMode) IconButton(
+                        onPressed: _searchSong,
+                        icon: const Icon(Icons.search), 
+                    ),
+                    // Add song button, not available in re order mode.
+                    if (!_reorderMode) IconButton(
+                        icon: const Icon(Icons.add_to_photos),
+                        onPressed: _handleAddSong,
+                        tooltip: "Add Song",
+                    ),
+                ],
+            ),
 
-        // Rebuild when controlsManager changes.
-        return ListenableBuilder(
-            listenable: widget.controlsManager,
-            builder: (context, child) {
-                return Scaffold(
-                    appBar: AppBar(
-                        title: Text(widget.playlist.playlistName),
-                        actions: [
-                            // Reorder mode toggle button. 
-                            IconButton(
-                                icon: Icon(
-                                _reorderMode ? Icons.check : Icons.reorder,
-                                color: _reorderMode 
-                                    ? Theme.of(context).colorScheme.onPrimary 
-                                    : null,
-                                ),
-                                onPressed: _toggleReorderMode,
-                                tooltip: _reorderMode ? "Confirm Order" : "Reorder Songs",
-                            ),
-                            // Search song button, not available in re order mode.  
-                            if (!_reorderMode) IconButton(
-                                onPressed: _searchSong,
-                                icon: const Icon(Icons.search), 
-                            ),
-                            // Add song button, not available in re order mode.
-                            if (!_reorderMode) IconButton(
-                                icon: const Icon(Icons.add_to_photos),
-                                onPressed: _handleAddSong,
-                                tooltip: "Add Song",
-                            ),
-                        ],
-                    ),
-                    body: Stack(
+            body: Stack(
+                children: [
+                    Column(
                         children: [
-                            Column(
-                                children: [
-                                    _buildSongsListWithBottomPadding(),
-                                ],
-                            ),
-                            _buildMusicPlayerDock(),
+                            _buildSongsListWithBottomPadding(),
                         ],
+                        
                     ),
-                );
-            },
+                    _buildMusicPlayerDock(),
+                ],
+            )
         );
     }
 
-    /// Lists of current song(s), with bottom padding predefined inside the list. 
+    /// Lists of current song(s), in normal mode or reorder mode, with bottom padding predefined inside the list. 
     /// 
-    /// This padding (180) is just enough for the dock in compact mode if scroll to list bottom.
-    Widget _buildSongsListWithBottomPadding(){
+    /// The song(s) list is rebuilt (may not be rebuilt entirely) when any of these conditions are true: 
+    /// 
+    /// 1. Changes in the number of song(s), ordering, or corrupted path(s). This is provided by [SongRepository.playlistNotifier] at the current page playlist. Song list is rebuilt entirely, ONCE. 
+    /// 2. A new song is set as the active song, and the highlight effect needs to be applied. Note that the article "the" indicates there can be exactly ONE active song. 
+    /// Uses [SongControlsManager.currentSongNotifier] and [SongControlsManager.isPlayingNotifier] to render the highlight effect of this active song.
+    /// 
+    /// Remarks: Under item 2, the song list is rebuilt entirely ONCE, then the highlight effect (rotating disc) is rebuilt exactly ONCE every frame. 
+    /// The highlight of the tile on rebuilt ONCE, on the frame that the song list is rebuilt entirely. All list tile(s) are not rebuilt during this rotating disc effect. 
+    Widget _buildSongsListWithBottomPadding() {
         return Expanded(
-            child: Scaffold(
-                // Allow the inner song list to be rebuild if there is a change. 
-                body: AnimatedBuilder(
-                    animation: SongRepository.playlistNotifier, 
-                    builder: (context, child){
-                        // Check for changes logic - if there are changes in the ordering, or there is a corrupted path, we reset the active list. 
-                        final SongsPlaylist updatedPlaylist = SongRepository.playlistNotifier.playlists[widget.playlist.playlistName]!;
-                        final updatedSongs = updatedPlaylist.getCurrentPlaylistSongs(); // Due to this being used multiple time, we store it. 
-                        if (!_areSongListsEqual(widget.playlist.getCurrentPlaylistSongs(), updatedSongs)) {
-                            widget.playlist.replaceSongs(updatedSongs); // We swap the song (thus, fail the condition).
-                            // Same playlist then update active playlist, otherwise we don't do that. 
-                            bool isSamePlaylist = widget.playlist.playlistName == SongControlsManager.activeSongsPlaylist.playlistName;
-                            if (isSamePlaylist){
-                                widget.controlsManager.setActivePlaylist(updatedPlaylist);  // Using only this work, but doing this every single build is ineffective. 
-                            }
+            /// Check for playlist updates is least frequent, => outer most (to not be affected by the changes of the more frequent one). 
+            child: ListenableBuilder(
+                listenable: SongRepository.playlistNotifier,
+                builder: (context, child) {
+                    // Check for playlist changes logic - if there are changes in the ordering, or there is a corrupted path, we reset the active list.
+                    final SongsPlaylist updatedPlaylist = SongRepository.playlistNotifier.playlists[widget.playlist.playlistName]!;
+                    if (!_areSongListsEqual(widget.playlist.getCurrentPlaylistSongs(), updatedPlaylist.getCurrentPlaylistSongs())) {
+                        // We swap the song (thus, fail the condition).
+                        widget.playlist.replaceSongs(updatedPlaylist.getCurrentPlaylistSongs());
+                        // Update active playlist if it's the same.
+                        bool isSamePlaylist = widget.playlist.playlistName == SongControlsManager.activeSongsPlaylist.playlistName;
+                        if (isSamePlaylist) {
+                            widget.controlsManager.setActivePlaylist(updatedPlaylist);
                         }
-                        // End of check for changes logic. 
-
-                        // If reorder, use the special re orderable list.  
-                        if (_reorderMode) {
-                            return ReorderableSongList(
-                                currentSong: widget.controlsManager.currentSong,
-                                currentPlaylist: widget.playlist, 
-                                controlsManager: widget.controlsManager, 
-                                onSongsReordered: (newSongs){
-                                    setState(() {
-                                        widget.playlist.replaceSongs(newSongs);
-                                    });
-                                },
-                                isPlaying: widget.controlsManager.audioService.isPlaying,
-                            );
-                                
-                        } 
-
-                        // Otherwise use the normal list. 
-                        return SongList(
-                            currentPlaylist: widget.playlist,
-                            currentSong: widget.controlsManager.currentSong,
-                            onSongTap: _handleSongTap,
-                            onSongButtonTap: _handleSongButtonTap, 
-                            isPlaying: widget.controlsManager.audioService.isPlaying,
-                        );
                     }
-                ),
-            )
+                    // End of check for playlist changes logic. 
+            
+                    /// We only perform the rebuild of the song list based on the [currentSongNotifier] and [isPlayingNotifier] (to display the leading overlay selected effect). 
+                    return ValueListenableBuilder<Song?>(
+                        valueListenable: widget.controlsManager.currentSongNotifier,
+                        builder: (context, currentSong, child) {
+                            return ValueListenableBuilder<bool>(
+                                valueListenable: widget.controlsManager.isPlayingNotifier,
+                                builder: (context, isPlaying, child) {
+                                    // If reorder, use the special re orderable list.  
+                                    if (_reorderMode) {
+                                        return ReorderableSongList(
+                                            currentSong: currentSong,
+                                            currentPlaylist: widget.playlist, 
+                                            controlsManager: widget.controlsManager, 
+                                            onSongsReordered: (newSongs){
+                                                setState(() {
+                                                    widget.playlist.replaceSongs(newSongs);
+                                                });
+                                            },
+                                            isPlaying: isPlaying,
+                                        );
+                                    } 
+                                    
+                                    // Normal song list.
+                                    return SongList(
+                                        currentPlaylist: widget.playlist,
+                                        currentSong: currentSong,
+                                        onSongTap: _handleSongTap,
+                                        onSongButtonTap: _handleSongButtonTap, 
+                                        isPlaying: isPlaying,
+                                    );
+                                }
+                            );
+                        }
+                    );
+                },
+            ),
         );
     }
 
     /// Normal [MusicPlayerDock] configuration. 
     /// 
     /// Expandable, default in compact mode, showing the title. 
+    /// [MusicPlayerDock] is rebuilt when there are specific changes in order to refresh the progress bar and the title. 
     Widget _buildMusicPlayerDock(){
         return Positioned(
             left: 0, 
             right: 0, 
             bottom: 0, 
             child: MusicPlayerDock(
-                currentSong: widget.controlsManager.currentSong,
-                duration: widget.controlsManager.currentDuration,
-                position: widget.controlsManager.currentPosition,
-                onSeek: widget.controlsManager.handleSeek,
-                pushToDetail: widget.controlsManager.pushToSongDetailPage,
-                
+                controlsManager: widget.controlsManager,
                 audioService: widget.audioService,
-                onNextSong: widget.controlsManager.gotoNextSong, 
-                onPreviousSong: widget.controlsManager.gotoPreviousSong, 
-                onPlayPauseResume: widget.controlsManager.handlePlayResumePause, 
-                onStop: widget.controlsManager.stop,
-                onToggleLoop: widget.controlsManager.toggleLoop,
-                isLooping: widget.controlsManager.isLooping,
-                onToggleRandom: widget.controlsManager.toggleRandom,
-                isRandom: widget.controlsManager.isRandom,
-            ),
+            )
         );
     }
 
@@ -196,12 +194,8 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
 
     // Update reorder mode.
     void _toggleReorderMode() {
-        setState(() {
-            _reorderMode = !_reorderMode;
-        });
-        if (_reorderMode) {
-            HapticFeedback.mediumImpact();
-        }
+        setState(() =>_reorderMode = !_reorderMode);
+        if (_reorderMode) HapticFeedback.mediumImpact();
     }
 
     /// Let user add a song from a list of currently valid song in the master list. 

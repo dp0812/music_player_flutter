@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-import '../entities/song.dart';
+import 'song.dart';
 import '../utilities/io_print.dart';
 
 /// This class is responsible for saving to file and loading from file, statically. 

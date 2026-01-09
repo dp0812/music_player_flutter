@@ -1,5 +1,5 @@
-import '../entities/song.dart';
-import '../entities/song_saver.dart';
+import 'song.dart';
+import 'song_saver.dart';
 
 /// Compose of multiple Songs, provide quick access to all their assetPath and title. 
 class SongsPlaylist {

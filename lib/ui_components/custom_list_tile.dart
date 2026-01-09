@@ -1,31 +1,30 @@
 import 'package:flutter/material.dart';
-import 'glass_morph.dart';
+import 'island_base.dart';
+import 'title_and_subtitle.dart';
 
 /// Custom list tile that allows a leading image (bounded to be circular), a title + a subtitle (column) and trailing buttons (row).
 /// 
-/// Use a simple blurry effect for the tile using [GlassMorph] and use SizedBox for spacing between the items. 
+/// Use a simple blurry effect for the tile using [IslandBase] and use SizedBox for spacing between the items. 
 /// On selected tile, the following happen: 
 /// 1. Use rotating effect for the leading image.
 /// 2. Add a moving wave at the end (before the last trailing button)
 /// 3. Highlight the border of the tile, as well as the text in the tile. 
 class CustomListTile extends StatelessWidget {
-    // Required. 
+    /// The album art created with [AlbumArt]. 
     final Widget leading;
     final String title;
     final String subtitle;
+    /// For song list this is play selected song. For playlist list this is push to Playlist Detail Page.  
     final void Function() onTap; 
-    final bool selected;
-    // Optional.
+
+    /// Condition of what is considered selected to apply [leadingOverlay] and [selectedTileEffect] and [selectedTextColor].
+    final bool isSelected;
+    /// Some buttons, or some spinKit effects, or both, attached to the end of the tile.
     final Widget? trailing;
-    final EdgeInsetsGeometry? padding;
-    final EdgeInsetsGeometry? margin;
-    /// Transparency level, default to 0.09 
-    final double? alpha; 
-    // Effect when song is selected and playing. 
-    final Decoration? decoration;
     /// Rotating effect.  
     final Widget? leadingOverlay;
-    final Color? selectedColor; 
+    final Decoration? selectedTileEffect;
+    final Color? selectedTextColor; 
 
     const CustomListTile({
         super.key,
@@ -33,40 +32,35 @@ class CustomListTile extends StatelessWidget {
         required this.title,
         required this.subtitle,
         required this.onTap,
-        this.selected = false,
+        this.isSelected = false,
         this.trailing,
-        this.padding,
-        this.margin,
-        this.alpha = 0.09,
-        this.decoration,
+        this.selectedTileEffect,
         this.leadingOverlay,
-        this.selectedColor,
+        this.selectedTextColor,
     });
 
     @override
     Widget build(BuildContext context) {
         final theme = Theme.of(context);
         final listTileTheme = theme.listTileTheme;        
-        final Color defaultSelectedColor = selectedColor ?? listTileTheme.selectedColor ?? theme.colorScheme.onPrimary;
+        final Color defaultSelectedColor = selectedTextColor ?? listTileTheme.selectedColor ?? theme.colorScheme.onPrimary;
         final Color textColor = listTileTheme.textColor ?? theme.textTheme.bodyLarge?.color ?? Colors.white;
 
         return Padding(
-            padding: margin ?? const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             child: GestureDetector(
                 onTap: onTap,
-                child: GlassMorph(
-                    alpha: alpha,
+                child: IslandBase(
                     child: _ListTileContent(
                         leading: leading,
                         trailing: trailing,
-                        padding: padding,
                         title: title,
                         subtitle: subtitle,
                         textColor: textColor,
                         // Selection effect. 
-                        selected: selected,
-                        selectedColor: defaultSelectedColor,
-                        decoration: decoration,
+                        selected: isSelected,
+                        selectedTextColor: defaultSelectedColor,
+                        selectedTileEffect: selectedTileEffect,
                         leadingOverlay: leadingOverlay,
                     ),
                 ),
@@ -75,42 +69,40 @@ class CustomListTile extends StatelessWidget {
     }
 }
 
-/// Display the leading, title + subtitle and, if provided trailing buttons, then add the buttons. 
+/// Display the leading, title + subtitle and, if provided trailing widget, then add the widget. 
 class _ListTileContent extends StatelessWidget {
     final Widget leading;
     final Widget? trailing;
-    final EdgeInsetsGeometry? padding;
     final String title;
     final String subtitle;
     final Color textColor;
     /// Condition of what is considered selected. 
     final bool selected;
     /// Effect on the text of the widget if it is selected. 
-    final Color selectedColor;
+    final Color selectedTextColor;
     /// Effect on the tile itself if it is selected. 
-    final Decoration? decoration;
+    final Decoration? selectedTileEffect;
     /// Effect on the leading widget of the tile if it is selected. 
     final Widget? leadingOverlay;
 
     const _ListTileContent({
         required this.leading,
         required this.trailing,
-        required this.padding,
         required this.title,
         required this.subtitle,
         required this.textColor,
         // Selection effect. 
         required this.selected,
-        required this.selectedColor,
-        this.decoration,
+        required this.selectedTextColor,
+        this.selectedTileEffect,
         this.leadingOverlay,
     });
 
     @override
     Widget build(BuildContext context) {
         return Container(
-            padding: padding ?? const EdgeInsets.all(12),
-            decoration: selected ? decoration : null ,
+            padding: const EdgeInsets.all(12),  
+            decoration: selected ? selectedTileEffect : null ,
             child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -122,73 +114,15 @@ class _ListTileContent extends StatelessWidget {
                         ],
                     ),                    
                     const SizedBox(width: 12),
-                    _TitleAndSubtitle(
+                    TitleAndSubtitle(
                         title: title,
                         subtitle: subtitle,
                         selected: selected,
-                        selectedColor: selectedColor,
+                        selectedTextColor: selectedTextColor,
                         textColor: textColor,
                     ),
                     if (trailing != null) const SizedBox(width: 8),
                     if (trailing != null) trailing!,
-                ],
-            ),
-        );
-    }
-}
-
-/// Both title and subtile are constrained to a single line (if overflow use ...).
-/// 
-/// Use the selectedColor for the text of selected item. 
-class _TitleAndSubtitle extends StatelessWidget {
-    final String title;
-    final String subtitle;
-    final Color textColor;
-    // Selection effect. 
-    final bool selected;
-    final Color selectedColor;
-
-    const _TitleAndSubtitle({
-        required this.title,
-        required this.subtitle,
-        required this.textColor,
-        // Selection effect. 
-        required this.selected,
-        required this.selectedColor,
-    });
-
-    @override
-    Widget build(BuildContext context) {
-        return Expanded(
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                    // Title. 
-                    Text(
-                        title,
-                        style: TextStyle(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 14,
-                            color: selected ? selectedColor : textColor,
-                            overflow: TextOverflow.ellipsis,
-                        ),
-                        maxLines: 1,
-                    ),
-                    
-                    const SizedBox(height: 2),
-                    // Subtitle. 
-                    Text(
-                        subtitle,
-                        style: TextStyle(
-                            fontSize: 12,
-                            color: selected 
-                                ? selectedColor.withValues(alpha: 0.7)
-                                : textColor.withValues(alpha: 0.6),
-                            overflow: TextOverflow.ellipsis,
-                        ),
-                        maxLines: 1,
-                    ),
                 ],
             ),
         );

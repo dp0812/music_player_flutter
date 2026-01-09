@@ -3,15 +3,17 @@ import 'package:flutter/services.dart';
 import 'package:music_player/ui_components/custom_list_tile.dart';
 import 'package:music_player/ui_components/trailing_row.dart';
 
+import 'album_art.dart';
+import 'rotating_disc.dart';
 import '../entities/song.dart';
 import '../entities/song_controls_manager.dart';
 import '../entities/song_playlist.dart';
 import '../entities/song_repository.dart';
 import '../entities/song_saver.dart';
-import 'album_art.dart';
-import 'rotating_disc.dart';
 
 /// A dragable song list for reordering song in a playlist. 
+/// 
+/// Include a bottom padding (by default = 180) just enough for the dock in compact mode when scroll to the bottom of the list. 
 /// 
 /// The update (write back to file) is immediate after EACH movement, where a movement is defined as a transition from the source index to the target index, 
 /// and source != target and the user has lift the mouse (or finger) so the item can relocate itself correctly. 
@@ -79,7 +81,7 @@ class _ReorderableSongListState extends State<ReorderableSongList> {
                 final isSelected = song.isEqual(widget.currentSong) && isSamePlaylist;
                 final bool shouldRotate = isSelected && widget.isPlaying;
                 // Highlight effect. 
-                final selectedBorder = BoxDecoration(
+                final selectedTileEffect = BoxDecoration(
                     color: Theme.of(context).colorScheme.onPrimary.withValues(alpha:0.1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Theme.of(context).colorScheme.onPrimary.withValues(alpha:0.3)),
@@ -98,10 +100,9 @@ class _ReorderableSongListState extends State<ReorderableSongList> {
                                     onTap: () {
                                         HapticFeedback.lightImpact();
                                     },
-                                    selected: isSelected,
-                                    alpha: isSelected ? 0.15 : 0.09,
-                                    selectedColor: Theme.of(context).colorScheme.onPrimary,
-                                    decoration: selectedBorder,
+                                    isSelected: isSelected,
+                                    selectedTextColor: Theme.of(context).colorScheme.onPrimary,
+                                    selectedTileEffect: selectedTileEffect,
                                     leading: shouldRotate || isSelected
                                         ? RotatingDisc(
                                             isPlaying: shouldRotate,

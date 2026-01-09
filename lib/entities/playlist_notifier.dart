@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../entities/song_playlist.dart';
+import 'song_playlist.dart';
 
 /// Notify listener when there is a change in the data and the identity of the playlists mapping. 
 /// 

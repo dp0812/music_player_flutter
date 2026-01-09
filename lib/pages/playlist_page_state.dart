@@ -23,42 +23,44 @@ class PlaylistPageState extends State<PlaylistPage> {
 
     @override
     Widget build(BuildContext context) {
-        // Rebuild when controlsManager changes.
-        return ListenableBuilder(
-            listenable: widget.controlsManager,
-            builder: (context, child) {
-                return Scaffold(
-                    appBar: AppBar(
-                        title: const Text("Library"),
-                    ),
-                    body: Stack(
+        return Scaffold(
+            appBar: AppBar(
+                title: const Text("Library"),
+            ),
+            body: Stack(
+                children: [
+                    Column(
                         children: [
-                            Column(
-                                children: [
-                                    SongManagementBar(
-                                        actionOneLabel: "New Playlist",
-                                        buttonActionOne: _addPlaylistByName,
-                                    ),
-                                    _buildPlaylistsListWithBottomPadding(),
-                                ],
+                            SongManagementBar(
+                                actionOneLabel: "New Playlist",
+                                buttonActionOne: _addPlaylistByName,
                             ),
-                            _buildMusicPlayerDock(),
+                            _buildPlaylistsListWithBottomPadding(),
                         ],
                     ),
-                );
-            },
+                    _buildMusicPlayerDock(),
+                ],
+            )
         );
     }
 
-    /// Lists of current Playlist(s), with bottom padding predefined inside the list. 
+    /// Lists of current playlist(s), with bottom padding predefined inside the list. 
     /// 
-    /// This padding (180) is just enough for the dock in compact mode if scroll to list bottom.
+    /// The playlist(s) list is rebuilt (may not be rebuilt entirely) when the following condition is true: 
+    /// 
+    /// 1. Changes in the number of song(s), ordering, or corrupted path(s) within any playlist that has triggered a write back to file. 
+    /// This is provided by [SongRepository.playlistNotifier] at the current page playlist. The playlist(s) list is rebuilt entirely, ONCE.  
     Widget _buildPlaylistsListWithBottomPadding(){
         return Expanded(
-            child: PlaylistsList(
-                onPlaylistTap: _gotoPlaylistDetailPage,
-                onPlaylistButtonTap: _deletePlaylist,
-                onPlaylistButtonTapTwo: _renamePlaylist,
+            child: ListenableBuilder(
+                listenable: SongRepository.playlistNotifier,
+                builder: (context, child) {
+                    return PlaylistsList(
+                        onPlaylistTap: _gotoPlaylistDetailPage,
+                        onPlaylistButtonTap: _deletePlaylist,
+                        onPlaylistButtonTapTwo: _renamePlaylist,
+                    );
+                }
             ),
         );
     }
@@ -66,28 +68,16 @@ class PlaylistPageState extends State<PlaylistPage> {
     /// Normal [MusicPlayerDock] configuration. 
     /// 
     /// Expandable, default in compact mode, showing the title. 
+    /// [MusicPlayerDock] is rebuilt when there are specific changes in order to refresh the progress bar and the title. 
     Widget _buildMusicPlayerDock(){
         return Positioned(
             left: 0, 
             right: 0, 
             bottom: 0, 
             child: MusicPlayerDock(
-                currentSong: widget.controlsManager.currentSong,
-                duration: widget.controlsManager.currentDuration,
-                position: widget.controlsManager.currentPosition,
-                onSeek: widget.controlsManager.handleSeek,
-                pushToDetail: widget.controlsManager.pushToSongDetailPage,
-                
+                controlsManager: widget.controlsManager,
                 audioService: widget.audioService,
-                onNextSong: widget.controlsManager.gotoNextSong, 
-                onPreviousSong: widget.controlsManager.gotoPreviousSong, 
-                onPlayPauseResume: widget.controlsManager.handlePlayResumePause, 
-                onStop: widget.controlsManager.stop,
-                onToggleLoop: widget.controlsManager.toggleLoop,
-                isLooping: widget.controlsManager.isLooping,
-                onToggleRandom: widget.controlsManager.toggleRandom,
-                isRandom: widget.controlsManager.isRandom,
-            ),
+            )
         );
     }
 

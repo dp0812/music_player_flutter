@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'album_art.dart';
 import 'custom_list_tile.dart';
+import 'placeholder_content.dart';
 import 'rotating_disc.dart';
 import 'trailing_row.dart';
 import '../entities/song.dart';
@@ -12,7 +13,8 @@ import '../entities/song_playlist.dart';
 /// 
 /// This widget is built to be used when user wants to see what the Songs inside some pages. 
 /// Apply effects to the song being played under certain conditions. 
-/// Include a bottom padding just enough for the dock in compact mode when scroll to the bottom of the list. 
+/// 
+/// Include a bottom padding (by default = 180) just enough for the dock in compact mode when scroll to the bottom of the list. 
 class SongList extends StatelessWidget {
     /// Use for both data display and highlight check. 
     final SongsPlaylist currentPlaylist; 
@@ -42,7 +44,7 @@ class SongList extends StatelessWidget {
     @override
     Widget build(BuildContext context) {
         return currentPlaylist.getCurrentPlaylistSongs().isEmpty 
-            ? const _NoSongsPlaceholder()
+            ? const PlaceholderContent(displayMessage: "No songs found. Click the 'Add Songs' button or 'Scan Folder' button!",)
             : _SongsListView(
                 context: context,
                 currentPlaylist: currentPlaylist,
@@ -120,11 +122,11 @@ class _SongListItem extends StatelessWidget {
 
     @override
     Widget build(BuildContext context) {
-        /// Song will only rotate if it is both playing and selected but we will still display the disc if either playing or selected is true
+        /// Song will only rotate if it is both playing and selected but we will still display the disc (the image) if either playing or selected is true. 
         /// For example: song is selected, but user pause => the disc is in rotation, just happen to not be moving. 
         final bool shouldRotate = isSelected && isPlaying;
         
-        final selectedBorder = BoxDecoration(
+        final selectedTileEffect = BoxDecoration(
                     color: Theme.of(context).colorScheme.onPrimary.withValues(alpha:0.1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Theme.of(context).colorScheme.onPrimary.withValues(alpha:0.3)),
@@ -134,10 +136,9 @@ class _SongListItem extends StatelessWidget {
             title: song.title,
             subtitle: song.artist ?? "Unknown",
             onTap: () => onSongTap(song),
-            selected: isSelected,
-            alpha: isSelected ? 0.15 : 0.09,
-            selectedColor: Theme.of(context).colorScheme.onPrimary,
-            decoration: selectedBorder,
+            isSelected: isSelected,
+            selectedTextColor: Theme.of(context).colorScheme.onPrimary,
+            selectedTileEffect: selectedTileEffect,
             /// Rotating effect. 
             leading: shouldRotate || isSelected
                 ? RotatingDisc(
@@ -159,24 +160,6 @@ class _SongListItem extends StatelessWidget {
                 song: song,
                 isSelected: isSelected,
                 isPlaying: isPlaying,
-            ),
-        );
-    }
-}
-
-class _NoSongsPlaceholder extends StatelessWidget {
-    const _NoSongsPlaceholder();
-
-    @override
-    Widget build(BuildContext context) {
-        return const Center(
-            child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text(
-                    "No songs found. Click the 'Add Songs' button to create one!",
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
-                    textAlign: TextAlign.center,
-                ),
             ),
         );
     }

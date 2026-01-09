@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:music_player/ui_components/custom_checkbox_list_tile.dart';
 
 import '../entities/song.dart';
 import '../entities/song_repository.dart';
@@ -26,12 +27,13 @@ class AddSongToPlaylistsState extends State<AddSongToPlaylists> {
             content: SingleChildScrollView(
                 child: ListBody(
                     children: [
-                        ...SongRepository.allSongPlaylists.keys
-                            .map((playlistName) {
-                                return CheckboxListTile(
-                                    title: Text(playlistName),
-                                    value: _selectedPlaylists.contains(playlistName),
-                                    onChanged: (bool? isChecked) => _checkedItem(playlistName, isChecked!),
+                        ...SongRepository.allSongPlaylists.values 
+                            .map((songsPlaylist) { 
+                                return CustomCheckboxListTile(
+                                    title: songsPlaylist.playlistName, 
+                                    subtitle: "${songsPlaylist.songCount} song(s)",
+                                    isSelected: _selectedPlaylists.contains(songsPlaylist.playlistName),
+                                    onChanged: (bool? isChecked) => _checkedItem(songsPlaylist.playlistName, isChecked!),
                                 );
                             }),
                     ],

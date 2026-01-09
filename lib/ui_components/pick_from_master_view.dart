@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'album_art.dart';
+import 'custom_checkbox_list_tile.dart';
 import '../entities/song.dart';
 import '../entities/song_repository.dart';
 
@@ -28,9 +30,11 @@ class _PickFromMasterViewState extends State<PickFromMasterView> {
                     children: [
                         ...SongRepository.masterSongPlaylist.getCurrentPlaylistSongs()
                             .map((song) {
-                                return CheckboxListTile(
-                                    title: Text(song.title),
-                                    value: _selectedSongs.contains(song),
+                                return CustomCheckboxListTile(
+                                    leading: AlbumArt(albumArtBytes:song.albumArtBytes, artHeight: 30, artWidth: 30,),
+                                    title: song.title,
+                                    subtitle: song.artist,
+                                    isSelected: _selectedSongs.contains(song),
                                     onChanged: (bool? isChecked) => _checkedItem(song, isChecked!),
                                 );
                             }),

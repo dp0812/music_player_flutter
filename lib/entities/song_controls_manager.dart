@@ -7,16 +7,17 @@ import 'package:flutter/material.dart';
 import 'audio_player_service.dart';
 import 'song.dart';
 import 'song_repository.dart';
-import '../entities/song_playlist.dart';
+import 'song_playlist.dart';
 import '../pages/song_detail_page.dart';
 import '../utilities/io_print.dart';
 
-/// This class provides service for pause, resume, stop, loop and progress bar information for songs. 
+/// This class provides service for pause, resume, stop, loop and progress bar information (that is, the position and duration) for songs. 
 /// 
-/// Client of this class must call [cancelAudioStreams] in their dispose function to ensure the audio is correctly stopped. 
 /// Remarks: 
-/// 1. The only current client that call [cancelAudioStreams] is the one that created the [SongControlsManager] - our [WelcomePageState]. 
-/// 2. This class contains all streams needed. User of the [SongControlsManager] should access the public getters of this class, and not opening another stream.   
+/// 1. Updating UI: this class defines 6 [ValueNotifier] for specific purpose, which allows the UI component of very specific thing to update on these conditions, thus avoiding unnecessary rebuild. 
+/// 2. Streams: This class contains all streams needed. User of the [SongControlsManager] should access the public getters of this class, and not opening another stream.    
+/// 3. Dispose: Client of this class must call [cancelAudioStreams] in their dispose function to ensure the audio is correctly stopped. 
+/// The only current client that call [cancelAudioStreams] is the one that created the [SongControlsManager] - our [WelcomePageState]. 
 class SongControlsManager extends ChangeNotifier {
     /// There exists exactly ONE [_activeSongsPlaylist] at any given time.
     static SongsPlaylist get activeSongsPlaylist => _activeSongsPlaylist;
@@ -25,6 +26,19 @@ class SongControlsManager extends ChangeNotifier {
     /// Interface for interacting with mp3 files (play, pause, resume...).
     final AudioPlayerService audioService;
     final BuildContext context;
+    
+    /// Notifty song list to provide selection effect. 
+    final ValueNotifier<Song?> currentSongNotifier = ValueNotifier(null);
+    /// Notifty song list to provide selection effect AND the play pause resume button.
+    final ValueNotifier<bool> isPlayingNotifier = ValueNotifier(false);
+    /// Notify the dock (progress bar) to change the position of the slider. 
+    final ValueNotifier<Duration> positionNotifier = ValueNotifier(Duration.zero);
+    /// Notify the dock (progress bar) to change the duration of the slider.
+    final ValueNotifier<Duration> durationNotifier = ValueNotifier(Duration.zero);
+    /// Notify loop button to toggle highlight.
+    final ValueNotifier<bool> isLoopingNotifier = ValueNotifier(false);
+    /// Notify random button to toggle highlight.
+    final ValueNotifier<bool> isRandomNotifier = ValueNotifier(false);
     
     Song? _currentSong;
     bool _isLooping = false;
@@ -54,6 +68,9 @@ class SongControlsManager extends ChangeNotifier {
     }) {
         // Set this listener up once, and exactly once. 
         _setupAudioListeners();
+        // Initialize notifiers with current state.
+        currentSongNotifier.value = _currentSong;
+        isPlayingNotifier.value = audioService.isPlaying;
     }
 
     /// Go to the previous Song in the active list. 
@@ -192,8 +209,9 @@ class SongControlsManager extends ChangeNotifier {
             final firstSong = currentSongList.first;
             _activeSongsPlaylist.replaceSongs(SongRepository.masterSongPlaylist.getCurrentPlaylistSongs());
             _activeSongsPlaylist.playlistName = SongRepository.masterSongPlaylist.playlistName; 
-            IO.d("Default to: ${activeSongsPlaylist.playlistName}");
+            IO.i("Default to: ${activeSongsPlaylist.playlistName}");
             _setCurrentSong(firstSong);
+            IO.i("Set current song to: ${firstSong.title}");
             audioService.playFile(firstSong.assetPath);
         }
     }
@@ -235,12 +253,16 @@ class SongControlsManager extends ChangeNotifier {
         // Reset progress bar before other operations. 
         _currentPosition = Duration.zero;
         _currentDuration = Duration.zero; 
+        positionNotifier.value = Duration.zero; 
+        durationNotifier.value = Duration.zero; 
         // Reload the master list will remove invalid file from the list. 
         await SongRepository.loadSongs();      
         await SongRepository.loadPlaylists();   
         _lastPlayedSong = null; 
         _songEnded = false;
         _activeSongsPlaylist.clearSongs();
+        currentSongNotifier.value = null; 
+        isPlayingNotifier.value = false; 
         notifyListeners();
     }
     
@@ -349,6 +371,7 @@ class SongControlsManager extends ChangeNotifier {
 
         try {
             _currentPosition = Duration.zero; 
+            positionNotifier.value = Duration.zero;
             notifyListeners();
         } catch (e){
             IO.e("Error reverting to beginning after song completetion: ", error: e);
@@ -358,6 +381,7 @@ class SongControlsManager extends ChangeNotifier {
         final currentDuration = await audioService.getCurrentDuration();
         if (currentDuration != null && currentDuration > Duration.zero) {
             _currentDuration = currentDuration;
+            durationNotifier.value = currentDuration;
         }
     }
     
@@ -481,17 +505,20 @@ class SongControlsManager extends ChangeNotifier {
     /// Set loop mode and notify listener. 
     void setLooping(bool looping) {
         _isLooping = looping;
+        isLoopingNotifier.value = looping; 
         notifyListeners();
     }
     /// Set random mode and notify listener. 
     void setRandom(bool random) {
         _isRandom = random;
+        isRandomNotifier.value = random; 
         notifyListeners();
     }
 
     /// Set current song and notify listeners
     void _setCurrentSong(Song? song) {
         _currentSong = song;
+        currentSongNotifier.value = song;
         if (song != null) {
             _lastPlayedSong = song;
             _songEnded = false;
@@ -567,17 +594,20 @@ class SongControlsManager extends ChangeNotifier {
         // Listen to duration changes and notify UI. 
         _onDurationSubscription = audioService.onDurationChanged.listen((duration) {
             _currentDuration = duration;
+            durationNotifier.value = duration;
             notifyListeners();
         });
         
         // Listen to position changes and notify UI. 
         _onPositionSubscription = audioService.onPositionChanged.listen((position) {
             _currentPosition = position;
+            positionNotifier.value = position;
             notifyListeners();
         });
 
         // Listen to player state changes and notify UI. 
         _playerStateSubscription = audioService.audioPlayer.onPlayerStateChanged.listen((state) {
+            isPlayingNotifier.value = (state == PlayerState.playing);
             if (state == PlayerState.playing) {
                 _songEnded = false;
                 notifyListeners();

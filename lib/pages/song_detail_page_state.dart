@@ -22,96 +22,91 @@ class SongDetailPageState extends State<SongDetailPage> {
 
     @override
     Widget build(BuildContext context) {
-        // Rebuild when controlsManager changes.
-        return ListenableBuilder(
-            listenable: widget.controlsManager,
-            builder: (context, child) {
-                // Get the currentSong => always display currentSong.
-                final currentSong = widget.controlsManager.currentSong ?? widget.initialSong;
-                final isPlaying = widget.audioService.isPlaying;
-                final isSongEnded = widget.controlsManager.songEnded && 
-                                   (widget.controlsManager.currentSong?.assetPath == currentSong.assetPath);
-                final displayedSong = widget.controlsManager.currentSong ?? widget.initialSong;
+        // Get the currentSong => always display currentSong.
+        final currentSong = widget.controlsManager.currentSong!;
 
-                return Scaffold(
-                    resizeToAvoidBottomInset: false,
-                    appBar: AppBar(
-                        leading: IconButton(
-                            icon: Icon(Icons.arrow_back),
-                            onPressed: () => Navigator.pop(context),
-                        ),
-                        actions: [
-                            // Add the current song to some playlist(s). 
-                            IconButton(
-                                icon: Icon(Icons.add),
-                                onPressed: () => _addSongToSelectedPlaylists(displayedSong),
-                                tooltip: "Add To",
-                            ),
-                            IconButton(
-                                icon: Icon(Icons.info_outline),
-                                onPressed: () => _showSongMetadata(displayedSong),
-                                tooltip: "Song Info",
-                            ),
-                        ],
+        return Scaffold(
+            resizeToAvoidBottomInset: false,
+            appBar: AppBar(
+                leading: IconButton(
+                    icon: Icon(Icons.arrow_back),
+                    onPressed: () => Navigator.pop(context),
+                ),
+                actions: [
+                    // Add the current song to some playlist(s). 
+                    IconButton(
+                        icon: Icon(Icons.add),
+                        onPressed: () => _addSongToSelectedPlaylists(currentSong),
+                        tooltip: "Add To",
                     ),
-                    body: ConstrainedBox(
-                        constraints: BoxConstraints(
-                            maxHeight: MediaQuery.of(context).size.height,
-                        ),
+                    IconButton(
+                        icon: Icon(Icons.info_outline),
+                        onPressed: () => _showSongMetadata(currentSong),
+                        tooltip: "Song Info",
+                    ),
+                ],
+            ),
+            body: Stack(
+                children:[ 
+                    ConstrainedBox(
+                        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height,),
                         child: Column(
                             children: [
-                                // Album Art Section 
-                                SizedBox(height: 50),
-                                AlbumArt(albumArtBytes: displayedSong.albumArtBytes),
-                                // Song Info Section.
-                                _buildSongInfo(context, displayedSong),
-                                // Progress Bar Section
-                                _buildProgressBar(context, displayedSong, isSongEnded, isPlaying),
-                                Spacer(),
+                                _updatedSongInfo(),
+                                _songProgressBar(context, currentSong),
                             ],
                         ),
                     ),
-                    // The bottom music player dock, include progress bar, title and buttons for next/previous, pause/play/resume, loop/random.
-                    bottomNavigationBar: MusicPlayerDock(
-                        isDisplayProgressBar: false,
-                        currentSong: widget.controlsManager.currentSong ?? displayedSong,
-                        duration: widget.controlsManager.currentDuration,
-                        position: widget.controlsManager.currentPosition,
-                        onSeek: widget.controlsManager.handleSeek,
+                    _buildMusicPlayerDock(),
+                ]
+            ),
+        );
+    }
 
-                        audioService: widget.audioService,
-                        onPreviousSong: widget.controlsManager.gotoPreviousSong,
-                        onNextSong: widget.controlsManager.gotoNextSong,
-                        onPlayPauseResume: widget.controlsManager.handlePlayResumePause,
-                        onStop: widget.controlsManager.stop,
-                        onToggleLoop: widget.controlsManager.toggleLoop,
-                        isLooping: widget.controlsManager.isLooping,
-                        onToggleRandom: widget.controlsManager.toggleRandom,
-                        isRandom: widget.controlsManager.isRandom,
-                    ),
+    /// Update when a new current song is there. 
+    Widget _updatedSongInfo(){
+        return ValueListenableBuilder<Song?>(
+            valueListenable: widget.controlsManager.currentSongNotifier,
+            builder: (context, currentSong, child) {
+                return Column(
+                    children: [
+                        const SizedBox(height: 50),
+                        AlbumArt(albumArtBytes: currentSong?.albumArtBytes),
+                        _buildSongInfo(context, currentSong),
+                    ],
                 );
             },
         );
     }
     
     /// Provide display of [_displayedSong.title] and [_displayedSong.artist]
-    Widget _buildSongInfo(BuildContext context, Song song){
+    Widget _buildSongInfo(BuildContext context, Song? song){
+        String title; 
+        String? artist; 
+        if (song == null) {
+            title = "Not Playing anything";
+            artist = "No Artist Found";
+        } else {
+            title = song.title;
+            artist = song.artist; 
+        }
+        
         return Padding(
-            padding: EdgeInsets.all(20),
+            padding: const EdgeInsets.all(20),
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                     Text(
-                        song.title,
-                        style: TextStyle(
+                        title,
+                        style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
                         ),
                         textAlign: TextAlign.center,
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
-                        song.artist ?? "Unknown Artist",
+                        artist ?? "Unknown Artist",
                         style: TextStyle(
                             fontSize: 18,
                             color: Colors.grey[100],
@@ -121,13 +116,28 @@ class SongDetailPageState extends State<SongDetailPage> {
             ),
         );
     }
+    
+    /// Special [MusicPlayerDock] configuration. 
+    /// 
+    /// Not expandable, and not displaying progress bar. 
+    /// [MusicPlayerDock] is rebuilt when there are specific changes in order to refresh the progress bar and the title. 
+    Widget _buildMusicPlayerDock(){
+        return Positioned(
+            left: 0, 
+            right: 0, 
+            bottom: 0, 
+            child: MusicPlayerDock(
+                controlsManager: widget.controlsManager,
+                audioService: widget.audioService,
+                isDisplayProgressBar: false,
+            )
+        );
+    }
 
     /// Build progress bar with no title, due to our own bigger title. 
-    Widget _buildProgressBar(BuildContext context, Song displayedSong, bool isSongEnded, bool isPlaying) {
+    Widget _songProgressBar(BuildContext context, Song displayedSong) {
         return NowPlayingDisplay(
-            currentSong: displayedSong, 
-            duration: widget.controlsManager.currentDuration, 
-            position: widget.controlsManager.currentPosition, 
+            controlsManager: widget.controlsManager,
             onSeek: widget.controlsManager.handleSeek,
             showTitle: false,
         );
@@ -138,36 +148,31 @@ class SongDetailPageState extends State<SongDetailPage> {
         showDialog(
             context: context,
             builder: (context) => AlertDialog(
-                title: Text("Song Metadata"),
+                title: const Text("Song Metadata"),
                 content: SingleChildScrollView(
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                            _buildMetadataRow("Title", displayedSong.title),
-                            if (displayedSong.artist != null) _buildMetadataRow("Artist", displayedSong.artist!),
-                            if (displayedSong.album != null) _buildMetadataRow("Album", displayedSong.album!),
-                            _buildMetadataRow("Duration", MiscFormatter.formatDuration(widget.controlsManager.currentDuration)),
-                            _buildMetadataRow("File Path", displayedSong.assetPath),
-                            SizedBox(height: 16),
-                            Divider(),
+                            SongMetadataRow(label: "Title", value: displayedSong.title),
+                            if (displayedSong.artist != null) SongMetadataRow(label: "Artist", value: displayedSong.artist!),
+                            if (displayedSong.album != null) SongMetadataRow(label: "Album", value: displayedSong.album!),
+                            SongMetadataRow(label: "Duration", value: MiscFormatter.formatDuration(widget.controlsManager.currentDuration)),
+                            SongMetadataRow(label: "File Path", value: displayedSong.assetPath),
+                            const SizedBox(height: 16),
+                            const Divider(),
                         ],
                     ),
                 ),
                 actions: [
                     TextButton(
                         onPressed: () => Navigator.pop(context),
-                        child: Text("Close"),
+                        child: const Text("Close"),
                     ),
                 ],
             ),
         );
     }
-
-    Widget _buildMetadataRow(String label, String value) {
-        return SongMetadataRow(label: label, value: value);
-    }
-
 
     /// Let user add current song to multiple playlist(s). 
     void _addSongToSelectedPlaylists(Song displayedSong) async {

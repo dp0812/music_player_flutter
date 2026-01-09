@@ -25,59 +25,75 @@ class SongScreenState extends State<SongScreen> {
 
     @override
     Widget build(BuildContext context) {
-        // Rebuild when controlsManager changes.
-        return ListenableBuilder(
-            listenable: widget.controlsManager,
-            builder: (context, child) {
-                if (_isLoading) {
-                    return const Scaffold(
-                        body: Center(child: CircularProgressIndicator()),
-                    );
-                }
+        if (_isLoading) {
+            return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+            );
+        }
 
-                return Scaffold(
-                    appBar: AppBar(
-                        title: const Text("Home"),
-                        // Search song button. 
-                        actions: [
-                            IconButton(
-                                onPressed: _searchSong,
-                                icon: const Icon(Icons.search), 
-                            ),
-                        ],
+        return Scaffold(
+            appBar: AppBar(
+                title: const Text("Home"),
+                // Search song button. 
+                actions: [
+                    IconButton(
+                        onPressed: _searchSong,
+                        icon: const Icon(Icons.search), 
                     ),
-                    body: Stack(
+                ],
+            ),
+            body: Stack(
+                children: [
+                    Column(
                         children: [
-                            Column(
-                                children: [
-                                    SongManagementBar(
-                                        actionOneLabel: "Add Songs",
-                                        actionTwoLabel: "Scan Folder",
-                                        buttonActionOne: _handleAddSong,
-                                        buttonActionTwo: _handleAddMusicDirectory,
-                                    ),
-                                    _buildSongsListWithBottomPadding(),
-                                ],
+                            SongManagementBar(
+                                actionOneLabel: "Add Songs",
+                                actionTwoLabel: "Scan Folder",
+                                buttonActionOne: _handleAddSong,
+                                buttonActionTwo: _handleAddMusicDirectory,
                             ),
-                            _buildMusicPlayerDock(),
+                            _buildSongsListWithBottomPadding(),
                         ],
                     ),
-                );
-            },
+                    _buildMusicPlayerDock(),
+                ],
+            ),
         );
     }
 
     /// Lists of current song(s), with bottom padding predefined inside the list. 
     /// 
-    /// This padding (180) is just enough for the dock in compact mode if scroll to list bottom.
+    /// The song(s) list is rebuilt (may not be rebuilt entirely) when any of these conditions are true: 
+    /// 
+    /// 1. Changes in the number of song(s), or corrupted path(s). This is provided by [SongRepository.masterListNotifier]. Song list is rebuilt entirely, ONCE. 
+    /// 2. A new song is set as the active song, and the highlight effect needs to be applied. Note that the article "the" indicates there can be exactly ONE active song. 
+    /// Uses [SongControlsManager.currentSongNotifier] and [SongControlsManager.isPlayingNotifier] to render the highlight effect of this active song.
+    /// 
+    /// Remarks: Under item 2, the song list is rebuilt entirely ONCE, then the highlight effect (rotating disc) is rebuilt exactly ONCE every frame. 
+    /// The highlight of the tile on rebuilt ONCE, on the frame that the song list is rebuilt entirely. All list tile(s) are not rebuilt during this rotating disc effect. 
     Widget _buildSongsListWithBottomPadding(){
         return Expanded(
-            child: SongList(
-                currentPlaylist: SongRepository.masterSongPlaylist,
-                currentSong: widget.controlsManager.currentSong,
-                onSongTap: _handleSongTap,
-                onSongButtonTap: _handleSongButtonTap,
-                isPlaying: widget.controlsManager.audioService.isPlaying,
+            child: ListenableBuilder(
+                listenable: SongRepository.masterListNotifier,
+                builder: (context, child) {
+                    return ValueListenableBuilder<Song?>(
+                        valueListenable: widget.controlsManager.currentSongNotifier,
+                        builder: (context, currentSong, child) {
+                            return ValueListenableBuilder<bool>(
+                            valueListenable: widget.controlsManager.isPlayingNotifier,
+                            builder: (context, isPlaying, child) {
+                                return SongList(
+                                    currentPlaylist: SongRepository.masterSongPlaylist,
+                                    currentSong: currentSong,
+                                    onSongTap: _handleSongTap,
+                                    onSongButtonTap: _handleSongButtonTap,
+                                    isPlaying: isPlaying,
+                                );
+                            },
+                            );
+                        },
+                    );
+                }
             ),
         );
     }
@@ -85,32 +101,20 @@ class SongScreenState extends State<SongScreen> {
     /// Normal [MusicPlayerDock] configuration. 
     /// 
     /// Expandable, default in compact mode, showing the title. 
+    /// [MusicPlayerDock] is rebuilt when there are specific changes in order to refresh the progress bar and the title. 
     Widget _buildMusicPlayerDock(){
         return Positioned(
             left: 0, 
             right: 0, 
             bottom: 0, 
             child: MusicPlayerDock(
-                currentSong: widget.controlsManager.currentSong,
-                duration: widget.controlsManager.currentDuration,
-                position: widget.controlsManager.currentPosition,
-                onSeek: widget.controlsManager.handleSeek,
-
-                pushToDetail: widget.controlsManager.pushToSongDetailPage,
+                controlsManager: widget.controlsManager,
                 audioService: widget.audioService,
-                onNextSong: widget.controlsManager.gotoNextSong, 
-                onPreviousSong: widget.controlsManager.gotoPreviousSong, 
-                onPlayPauseResume: widget.controlsManager.handlePlayResumePause, 
-                onStop: widget.controlsManager.stop,
-                onToggleLoop: widget.controlsManager.toggleLoop,
-                isLooping: widget.controlsManager.isLooping,
-                onToggleRandom: widget.controlsManager.toggleRandom,
-                isRandom: widget.controlsManager.isRandom,
-            ),
+            )
         );
     }
 
-    /// Push the user to Song Detail Page
+    /// Push the user to Song Detail Page.
     /// 
     /// Use a fade in transition to hide any potential not fully loaded progress bar. 
     void _goToSongDetailPage(Song song) async {
