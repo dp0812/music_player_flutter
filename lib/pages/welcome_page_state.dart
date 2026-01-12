@@ -17,20 +17,9 @@ import '../entities/song_controls_manager.dart';
 class WelcomePageState extends State<WelcomePage> {
     int _selectedIndex = 0;
 
-    // Unified audio and controls across all pages of the app to ensure song persists. 
-    late final AudioPlayerService audioService;
-    late SongControlsManager _controlsManager;
-
     @override
     void initState() {
         super.initState();
-        // Shared audio service across all pages. 
-        audioService = AudioPlayerService();
-        // Shared controls manager across all pages. 
-        _controlsManager = SongControlsManager(
-            audioService: audioService,
-            context: context,
-        );
     }
     
     /// Provide the NavigationBar (bottom) with a fade transition to hide the loading. 
@@ -87,38 +76,38 @@ class WelcomePageState extends State<WelcomePage> {
         );
     }
 
-    /// Create destination pages and passed the corretly service to them. 
+    /// Create destination pages. 
     Widget _buildPages() {
         switch (_selectedIndex) {
             case 0: 
                 return SongScreen(
-                    audioService: audioService,
-                    controlsManager: _controlsManager,
-                    currentSong: _controlsManager.currentSong,
-                    isLooping: _controlsManager.isLooping,
-                    isRandom: _controlsManager.isRandom,
-                    currentDuration: _controlsManager.currentDuration,
-                    currentPosition: _controlsManager.currentPosition,
+                    audioService: widget.audioService,
+                    controlsManager: widget.controlsManager,
+                    currentSong: widget.controlsManager.currentSong,
+                    isLooping: widget.controlsManager.isLooping,
+                    isRandom: widget.controlsManager.isRandom,
+                    currentDuration: widget.controlsManager.currentDuration,
+                    currentPosition: widget.controlsManager.currentPosition,
                 );
             case 1: 
                 return PlaylistPage(
-                    audioService: audioService,
-                    controlsManager: _controlsManager,
-                    currentSong: _controlsManager.currentSong,
-                    isLooping: _controlsManager.isLooping,
-                    isRandom: _controlsManager.isRandom,
-                    currentDuration: _controlsManager.currentDuration,
-                    currentPosition: _controlsManager.currentPosition,
+                    audioService: widget.audioService,
+                    controlsManager: widget.controlsManager,
+                    currentSong: widget.controlsManager.currentSong,
+                    isLooping: widget.controlsManager.isLooping,
+                    isRandom: widget.controlsManager.isRandom,
+                    currentDuration: widget.controlsManager.currentDuration,
+                    currentPosition: widget.controlsManager.currentPosition,
                 );
             case 2: 
                 return SettingsPage(
-                    audioService: audioService, 
-                    controlsManager: _controlsManager, 
-                    currentSong: _controlsManager.currentSong, 
-                    isLooping: _controlsManager.isLooping, 
-                    isRandom: _controlsManager.isRandom, 
-                    currentDuration: _controlsManager.currentDuration, 
-                    currentPosition: _controlsManager.currentPosition
+                    audioService: widget.audioService, 
+                    controlsManager: widget.controlsManager, 
+                    currentSong: widget.controlsManager.currentSong, 
+                    isLooping: widget.controlsManager.isLooping, 
+                    isRandom: widget.controlsManager.isRandom, 
+                    currentDuration: widget.controlsManager.currentDuration, 
+                    currentPosition: widget.controlsManager.currentPosition
                 );
             default: 
                 return const SizedBox(); // This should NOT happen. Like ever. 
@@ -127,8 +116,7 @@ class WelcomePageState extends State<WelcomePage> {
     
     @override
     void dispose() {
-        _controlsManager.cancelAudioStreamsAndSubscriptions();
-        audioService.dispose();
+        widget.controlsManager.cancelAudioStreamsAndSubscriptions();
         super.dispose();
     }
 }

@@ -3,11 +3,11 @@ import 'dart:math';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/material.dart';
-
 import 'audio_player_service.dart';
 import 'song.dart';
 import 'song_repository.dart';
 import 'song_playlist.dart';
+import '../main.dart';
 import '../pages/song_detail_page.dart';
 import '../utilities/io_print.dart';
 
@@ -25,7 +25,6 @@ class SongControlsManager extends ChangeNotifier {
 
     /// Interface for interacting with mp3 files (play, pause, resume...).
     final AudioPlayerService audioService;
-    final BuildContext context;
     
     /// Notifty song list to provide selection effect. 
     final ValueNotifier<Song?> currentSongNotifier = ValueNotifier(null);
@@ -64,7 +63,6 @@ class SongControlsManager extends ChangeNotifier {
     
     SongControlsManager({
         required this.audioService,
-        required this.context,
     }) {
         // Set this listener up once, and exactly once. 
         _setupAudioListeners();
@@ -82,7 +80,7 @@ class SongControlsManager extends ChangeNotifier {
             if (currentSongList.isNotEmpty) {
                 final firstSong = currentSongList.first;
                 _setCurrentSong(firstSong);
-                audioService.playFile(firstSong.assetPath);
+                audioService.playFile(firstSong);
             } else {
                 stop();
             }
@@ -95,7 +93,7 @@ class SongControlsManager extends ChangeNotifier {
 
         if (await SongRepository.isSongFileAvailable(previousSong.assetPath)){
             _setCurrentSong(previousSong);
-            audioService.playFile(previousSong.assetPath);
+            audioService.playFile(previousSong);
         } else {
             showMessage(
                 title: "Corrupted file",
@@ -116,7 +114,7 @@ class SongControlsManager extends ChangeNotifier {
             if (currentSongList.isNotEmpty) {
                 final firstSong = currentSongList.first;
                 _setCurrentSong(firstSong);
-                audioService.playFile(firstSong.assetPath);
+                audioService.playFile(firstSong);
             } else {
                 stop();
             }
@@ -129,7 +127,7 @@ class SongControlsManager extends ChangeNotifier {
 
         if (await SongRepository.isSongFileAvailable(nextSong.assetPath)){
             _setCurrentSong(nextSong);
-            audioService.playFile(nextSong.assetPath);
+            audioService.playFile(nextSong);
         } else {
             showMessage(
                 title: "Corrupted file",
@@ -189,7 +187,7 @@ class SongControlsManager extends ChangeNotifier {
                     _songEnded = false;
                     _setCurrentSong(songToPlay);
                     IO.d("Playing this path: ${songToPlay.assetPath}");
-                    audioService.playFile(songToPlay.assetPath);                
+                    audioService.playFile(songToPlay);    
                     return;
                 } else {
                     showMessage(
@@ -212,7 +210,7 @@ class SongControlsManager extends ChangeNotifier {
             IO.i("Default to: ${activeSongsPlaylist.playlistName}");
             _setCurrentSong(firstSong);
             IO.i("Set current song to: ${firstSong.title}");
-            audioService.playFile(firstSong.assetPath);
+            audioService.playFile(firstSong);
         }
     }
 
@@ -225,7 +223,7 @@ class SongControlsManager extends ChangeNotifier {
         if (await SongRepository.isSongFileAvailable(song.assetPath)) {
             _songEnded = false;
             _setCurrentSong(song);
-            audioService.playFile(song.assetPath);
+            audioService.playFile(song);
         } else {
             showMessage(
                 title: "Corrupted file",
@@ -320,9 +318,11 @@ class SongControlsManager extends ChangeNotifier {
     /// Expansion to the [MusicPlayerDock] in expanded mode. 
     void pushToSongDetailPage(Song song) async {
         if (_currentSong == null) return; 
+        final navState = navigatorKey.currentState;
+        if (navState == null) return;
         if (_currentSong!.assetPath == song.assetPath){
-            await Navigator.push(
-                context,
+            await navState.push(
+                // context,
                 PageRouteBuilder(
                     transitionDuration: Duration(milliseconds: 200),
                     pageBuilder: (context, animation, secondaryAnimation) => SongDetailPage(
@@ -400,7 +400,7 @@ class SongControlsManager extends ChangeNotifier {
             if (currentSongList.isNotEmpty) {
                 final firstSong = currentSongList.first;
                 _setCurrentSong(firstSong);
-                audioService.playFile(firstSong.assetPath);
+                audioService.playFile(firstSong);
             } else {
                 stop();
             }
@@ -418,7 +418,7 @@ class SongControlsManager extends ChangeNotifier {
         
         if (await SongRepository.isSongFileAvailable(nextSong.assetPath)){
             _setCurrentSong(nextSong);
-            audioService.playFile(nextSong.assetPath);
+            audioService.playFile(nextSong);
         } else {
             showMessage(
                 title: "Corrupted file",
@@ -490,7 +490,7 @@ class SongControlsManager extends ChangeNotifier {
         if (await SongRepository.isSongFileAvailable(song.assetPath)) {
             _songEnded = false;
             _setCurrentSong(song);
-            audioService.playFile(song.assetPath);
+            audioService.playFile(song);
         } else {
             showMessage(
                 title: "Corrupted file",
@@ -636,8 +636,8 @@ class SongControlsManager extends ChangeNotifier {
 
     /// Helper to display snackbar message with a preset duration. 
     void showMessage({required String message, required String title, Duration duration = const Duration(seconds: 2), ContentType messageType = ContentType.help}){
-        if (!context.mounted) return;
-        
+        final state = snackbarKey.currentState;
+        if (state == null) return;
         final customSnackBar = SnackBar(
             elevation: 0,
             behavior: SnackBarBehavior.floating,
@@ -651,9 +651,8 @@ class SongControlsManager extends ChangeNotifier {
             duration: duration, 
         );
 
-        ScaffoldMessenger.of(context)
-            ..hideCurrentSnackBar()
-            ..showSnackBar(customSnackBar);
+        state..hideCurrentSnackBar()
+             ..showSnackBar(customSnackBar);
         
     }
 }

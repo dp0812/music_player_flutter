@@ -1,6 +1,9 @@
 import 'dart:async';
 
 import 'package:audioplayers/audioplayers.dart';
+
+import 'song.dart';
+import'../main.dart';
 import '../utilities/io_print.dart';
 
 /// Responsible for playing of mp3 files. 
@@ -29,15 +32,16 @@ class AudioPlayerService {
 
     /// Call this to play a new song from a local file path.
     /// 
-    /// The caller must guarantee that said [filePath] is valid and exist. Otherwise throw exception. 
+    /// The caller must guarantee that said [songToPlay.assetPath] is valid and exist. Otherwise throw exception. 
     /// Will also throw exception if use an unsupported encoding: example includes: 0xc00d36b2 
     /// This type of exception (due to encoding) cannot be catch for now (I have not figured out why it cannot be catch), so it WILL crash the app. 
-    Future<void> playFile(String filePath) async {
+    Future<void> playFile(Song songToPlay) async {
         try {
             await _audioPlayer.stop(); // Stop current before running new one. 
-            await _audioPlayer.setSource(DeviceFileSource(filePath));
-            _currentFilePath = filePath; // Set current path when play. 
+            await _audioPlayer.setSource(DeviceFileSource(songToPlay.assetPath));
+            _currentFilePath = songToPlay.assetPath; // Set current path when play. 
             await _audioPlayer.resume(); 
+            audioHandler.updateMetadata(songToPlay);
         } catch (e) {
             IO.e("Some shutdown exception.", error: e);
         }
