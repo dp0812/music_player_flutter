@@ -17,10 +17,11 @@ Note that these following situations do not break the application (no red error 
         - User (reader of this code) should be able to tell, on a very high level, what this code is doing (and the visual of this code), with a brief glance over the first k lines of the code. 
         - Also, there is a very high chance that the user is inclined towards making UI changes, rather than logical changes (since you can see the effect immediately), then putting the build function on the top is more helpful.   
 
-- Remark 4: 
+- Remark 4: Android specific.  
     - Permission problem is only tested on android.
     - If granted audio permission (WHICH IS THE ONLY THING THIS APP ASK), the file picker for folder will work. Also the auto scan from android_file_system.dart will work. 
-    - If not granted, or permission is removed from the AndroidManifest.xml in android/app/src/main, then it will for sure fail. 
+    - If not granted, or permission is removed from the AndroidManifest.xml in android/app/src/main, then it will for sure fail.
+    - Currently control with bluetooth shortcut does not work.  
 
 - Remark 5:
     - This is my proud version, all about cutting down rebuild per frame. 

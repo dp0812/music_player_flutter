@@ -306,7 +306,7 @@ class SongControlsManager extends ChangeNotifier {
         setRandom(!_isRandom);
         showMessage(
             title: "Mode change",
-            message: "Random mode: ${_isLooping ? "ON" : "OFF"}", 
+            message: "Random mode: ${_isRandom ? "ON" : "OFF"}", 
             duration: const Duration(seconds: 1)
         );
     }
