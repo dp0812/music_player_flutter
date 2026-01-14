@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'playlist_page_state.dart';
 import '../entities/audio_player_service.dart';
-import '../entities/song.dart';
 import '../entities/song_controls_manager.dart';
 
 /// PlaylistPage contains all current playlist(s).
@@ -12,21 +11,13 @@ import '../entities/song_controls_manager.dart';
 class PlaylistPage extends StatefulWidget {
     final AudioPlayerService audioService;
     final SongControlsManager controlsManager;
-    final Song? currentSong;
-    final bool isLooping;
-    final bool isRandom;
-    final Duration currentDuration;
-    final Duration currentPosition;
+    final void Function(bool isLoading)? onLoadingStateChanged; 
     
     const PlaylistPage({
         super.key,
         required this.audioService,
         required this.controlsManager,
-        required this.currentSong,
-        required this.isLooping,
-        required this.isRandom,
-        required this.currentDuration,
-        required this.currentPosition
+        this.onLoadingStateChanged, 
     });
 
     @override

@@ -294,21 +294,11 @@ class SongControlsManager extends ChangeNotifier {
     /// Toogle loop using setter that notify listener. 
     void toggleLoop() {
         setLooping(!_isLooping);
-        showMessage(
-            title: "Mode change",
-            message: "Loop mode: ${_isLooping ? "ON" : "OFF"}", 
-            duration: const Duration(seconds: 1)
-        );
     }
 
     /// Toogle random using setter that notify listener. 
     void toggleRandom() {
         setRandom(!_isRandom);
-        showMessage(
-            title: "Mode change",
-            message: "Random mode: ${_isRandom ? "ON" : "OFF"}", 
-            duration: const Duration(seconds: 1)
-        );
     }
 
     /// Push to the Song Detail Page of the input song. 
@@ -322,7 +312,6 @@ class SongControlsManager extends ChangeNotifier {
         if (navState == null) return;
         if (_currentSong!.assetPath == song.assetPath){
             await navState.push(
-                // context,
                 PageRouteBuilder(
                     transitionDuration: Duration(milliseconds: 200),
                     pageBuilder: (context, animation, secondaryAnimation) => SongDetailPage(

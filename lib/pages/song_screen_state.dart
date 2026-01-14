@@ -16,11 +16,16 @@ import '../ui_components/song_management_bar.dart';
 class SongScreenState extends State<SongScreen> {
     bool _isLoading = true;
     static bool _isFirstTime = true; 
+    bool _isDisposed = false;
     
     @override
     void initState() {
         super.initState();
-        _loadAndSynchronizeSongs();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!_isDisposed) {
+                _loadAndSynchronizeSongs();
+            }
+        });
     }
 
     @override
@@ -194,7 +199,7 @@ class SongScreenState extends State<SongScreen> {
 
     /// Clean up and ensure file intergrity when user navigates to this page. 
     Future<void> _loadAndSynchronizeSongs() async {
-        setState(() => _isLoading = true);
+        _updateLoadingState(true);
         await SongRepository.loadSongs();
         // Obtain the playlist data for the add to function in song detail page to work on the 1st time the app start. 
         if (_isFirstTime){
@@ -202,11 +207,30 @@ class SongScreenState extends State<SongScreen> {
             _isFirstTime = false; 
         }
         await widget.controlsManager.synchronizePlaybackState(SongRepository.masterSongPlaylist);
-        setState(() => _isLoading = false);
+        _updateLoadingState(false);
+    }
+
+    void _updateLoadingState(bool isLoading) {
+        if (_isDisposed || !mounted) return;
+        // Otherwise we delay the call. 
+        setState(() {
+            _isLoading = isLoading;
+        });
+
+        // Notify parent with safety check
+        if (widget.onLoadingStateChanged != null && !_isDisposed) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!_isDisposed) {
+                    widget.onLoadingStateChanged!(isLoading);
+                }
+            });
+        }
     }
     
     @override
     void dispose() {
+        _isDisposed = true;
+        widget.onLoadingStateChanged?.call(false);
         super.dispose();
     }
 }

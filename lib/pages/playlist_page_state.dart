@@ -14,11 +14,17 @@ import '../ui_components/song_management_bar.dart';
 
 /// This page display an overview of all playlist(s) and give user the music dock to control the song being played. 
 class PlaylistPageState extends State<PlaylistPage> {
+    bool _isLoading = false; 
+    bool _isDisposed = false;
 
     @override
     void initState() {
         super.initState();
-        _loadPlaylists();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!_isDisposed) {
+                _loadPlaylists();
+            }
+        });
     }
 
     @override
@@ -91,11 +97,6 @@ class PlaylistPageState extends State<PlaylistPage> {
                     playlist: playlist,
                     audioService: widget.audioService,
                     controlsManager: widget.controlsManager,
-                    currentSong: widget.controlsManager.currentSong,
-                    isLooping: widget.controlsManager.isLooping,
-                    isRandom: widget.controlsManager.isRandom,
-                    currentDuration: widget.controlsManager.currentDuration,
-                    currentPosition: widget.controlsManager.currentPosition,
                 ),
                 transitionsBuilder: (context, animation, secondaryAnimation, child) {
                     return FadeTransition(
@@ -109,8 +110,9 @@ class PlaylistPageState extends State<PlaylistPage> {
 
     /// Load the playlist list from the file system. 
     Future <void> _loadPlaylists() async {
+        _updateLoadingState(true);
         await SongRepository.loadPlaylists();
-        setState(() {/* Rebuild UI. */});
+        _updateLoadingState(false);
     }
     
     /// Prompt user to enter new playlist name for creation. 
@@ -149,8 +151,26 @@ class PlaylistPageState extends State<PlaylistPage> {
         setState(() {/* Rebuild UI */});
     }
 
+    void _updateLoadingState(bool isLoading) {
+        if (_isDisposed || !mounted) return;
+        // Otherwise we delay the call. 
+        setState(() {
+            _isLoading = isLoading;
+        });
+
+        if (widget.onLoadingStateChanged != null && !_isDisposed) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!_isDisposed) {
+                    widget.onLoadingStateChanged!(_isLoading);
+                }
+            });
+        }
+        
+    }
+
     @override
     void dispose() {
+        _isDisposed = true;
         super.dispose();
     }
 }
