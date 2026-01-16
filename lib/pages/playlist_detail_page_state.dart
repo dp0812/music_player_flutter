@@ -252,7 +252,7 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
         );
     }
     
-    /// Load available songs and synchronize playback state. 
+    /// Load available songs using [SongRepository.loadPlaylist] and synchronize playback state. 
     /// 
     /// Remove any invalid songs spotted. 
     /// Remarks: The loading is done more frequently to reflect the changes user make during re order mode. 
@@ -260,7 +260,9 @@ class PlaylistDetailPageState extends State<PlaylistDetailPage> {
     Future<void> _loadAndSynchronizeSongs() async {
         setState(() => _isLoading = true);
 
-        await SongRepository.loadSongs();
+        /// I no longer do the following code: 
+        /// await SongRepository.loadSongs();
+        /// This is due to the loading time it takes for this loadSongs to work, thus, making an irritatingly long progress indicator for a playlist. 
         await SongRepository.loadPlaylist(playlistName: widget.playlist.playlistName);
 
         // Get the updated playlist from repository

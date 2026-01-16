@@ -36,9 +36,9 @@ class SongsPlaylist {
         return null; 
     }
 
-    /// Returns true if path of the given Song object already exists in the list. 
+    /// Returns true if any current song is equal to [someSong].
     bool _isSongInPlaylist(Song someSong){
-        return _currentPlaylist.any((song) => song.assetPath == someSong.assetPath);
+        return _currentPlaylist.any((song) => song.isEqual(someSong));
     }
 
     /// Returns the list of Songs an instance holds. 

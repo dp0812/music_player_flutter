@@ -11,7 +11,17 @@ import 'song_playlist.dart';
 import 'song.dart';
 import '../utilities/io_print.dart';
 
-/// Holds actual Song objects data. Contain a special master SongsPlaylist named [masterSongPlaylist], and a Map of sub list, named [allSongPlaylists]. 
+/// Holds actual [Song] data. Contain a special master [SongsPlaylist] named [masterSongPlaylist], and a Map of sub list, named [allSongPlaylists]. 
+/// 
+/// Remarks: About the term "invalid"/ "invalid song" being used in this file, there are 2 definitions: 
+/// 1. In [loadSongs]: an invalid song is a song which invoking [isSongFileAvailable] returns false.
+///     - Corollary 1: the negation is considered valid (sounds redundant, but there is a need to clarify this). 
+/// 2. In [loadPlaylists] and [loadPlaylist] (note that the first is plural, and the second is singular), an invalid song is a song that its assetPath cannot be found in [SongSaver.masterFileNameExt].
+///     - Corollary 2: if the assetPath of a song can be found in [SongSaver.masterFileNameExt] BUT cannot be located on the file system, it is a valid song. 
+///  
+/// Therefore, the defintion of "valid song" depends on the context (haha). 
+/// Thus, in definition 2, If we do not want to reload the entire [masterSongPlaylist], 
+/// there is a need to add a check for whether a song is on the file system first, then check if it is in [SongSaver.masterFileNameExt]. 
 class SongRepository {
     /// After changing the [allSongPlaylists] map, either value or identity (swap the object), notify the listener with: 
     /// ```dart 
@@ -25,16 +35,14 @@ class SongRepository {
     static final MasterListNotifier masterListNotifier = MasterListNotifier();
     /// Store all the Song objects in the supplier directory. Please make reference to this to the full song list. 
     static SongsPlaylist masterSongPlaylist = SongsPlaylist(playlistName: SongSaver.masterFileNameExt);
-    /// Each playlist name is a key, connect to a [SongsPlaylist] which you can call [getCurrentPlaylistSongs()] to acquire the list of Songs. 
+    /// Each playlist name is a key, connect to a [SongsPlaylist] which you can call [SongsPlaylist.getCurrentPlaylistSongs] to acquire the list of Songs. 
     static Map<String,SongsPlaylist> allSongPlaylists = {};
     /// Class must be used statically. 
     SongRepository._();
 
     /// Load playlist data in the application directory and populate the map [SongRepository.allSongPlaylists], removing all invalid songs. 
     /// 
-    /// A song is considered invalid when its assetPath cannot be found in [SongSaver.masterFileNameExt].txt file.
-    /// If assetPath can be matched with data in the [SongSaver.masterFileNameExt].txt, a new Song object with that path will be add to the playlist. 
-    /// Trigger write back to file if there are invalid songs. 
+    /// Trigger write back to file if there are invalid songs, or some files no longer exist.
     static Future<void> loadPlaylists() async {
         // Clear in-memory collection before loading
         allSongPlaylists.clear(); 
@@ -44,6 +52,16 @@ class SongRepository {
             List<String> paths = await SongSaver.loadSavedPlaylist(playlistName: name);
             SongsPlaylist newPlaylist = SongsPlaylist(playlistName: name);
 
+            /// This operation ensure that path(s) from paths is actually on the file system. 
+            Set<String> pathsToRemove = {}; 
+            bool isOnFileSystem = true; 
+            for (String path in paths){
+                if (await isSongFileAvailable(path)) continue;
+                pathsToRemove.add(path);
+                isOnFileSystem = false; 
+            }
+            paths.removeWhere((somePath) => pathsToRemove.contains(somePath));
+
             final List<Song> validSongs = commonValidSongs(paths);
             newPlaylist.replaceSongs(validSongs); 
             int songsAdded = validSongs.length; 
@@ -51,12 +69,12 @@ class SongRepository {
 
             allSongPlaylists[name] = newPlaylist;
             IO.t('Loaded playlist "$name" with $songsAdded songs.');
-            // No invalid songs => next playlist. 
-            if (invalidSongs == 0 ) continue;   
+            // No invalid songs and all files exist => next playlist. 
+            if (invalidSongs == 0 && isOnFileSystem) continue;   
             // Otherwise rewrite this valid playlist back to the file.
             File currentPlaylistFile = await SongSaver.getPlaylistFile(playlistName: name);
             await SongSaver.rewriteSavedSongPaths(newPlaylist.getAllPathsInPlaylist(), songPathFile: currentPlaylistFile);
-            IO.w('Spotted $invalidSongs invalid Song. Write back to playlist "$name" completed!');
+            IO.w('Spotted $invalidSongs invalid Song and isOnFileSystem = $isOnFileSystem. Write back to playlist "$name" completed!');
 
         }
         playlistNotifier.setPlaylistsAndNotifyListeners(allSongPlaylists);
@@ -64,13 +82,22 @@ class SongRepository {
 
     /// Load a single playlist, specify by the [playlistName] from [allSongPlaylists] and remove all invalid songs. 
     /// 
-    /// A song is considered invalid when its assetPath cannot be found in [SongSaver.masterFileNameExt].txt file.
-    /// If assetPath can be matched with data in the [SongSaver.masterFileNameExt].txt, a new Song object with that path will be add to the playlist. 
-    /// Trigger write back to file if there are invalid songs. 
+    /// Trigger write back to file if there are invalid songs, or some files no longer exist. 
     static Future<void> loadPlaylist({required String playlistName}) async {
         if(!allSongPlaylists.containsKey(playlistName)) return; 
 
         List<String> paths = await SongSaver.loadSavedPlaylist(playlistName: playlistName);
+
+        /// This operation ensure that path(s) from paths is actually on the file system. 
+        Set<String> pathsToRemove = {}; 
+        bool isOnFileSystem = true; 
+        for (String path in paths){
+            if (await isSongFileAvailable(path)) continue;
+            pathsToRemove.add(path);
+            isOnFileSystem = false; 
+        }
+        paths.removeWhere((somePath) => pathsToRemove.contains(somePath));
+
         SongsPlaylist newPlaylist = SongsPlaylist(playlistName: playlistName);
 
         final List<Song> validSongs = commonValidSongs(paths);
@@ -81,8 +108,8 @@ class SongRepository {
         allSongPlaylists[playlistName] = newPlaylist;
         IO.t('Loaded playlist "$playlistName" with $songsAdded songs.');
         
-        // No invalid songs => notify then return. 
-        if (invalidSongs == 0 ) {
+        // No invalid songs and all files exist => notify then return. 
+        if (invalidSongs == 0 && isOnFileSystem) {
             playlistNotifier.updatePlaylist(playlistName, newPlaylist);
             return; 
         }   
@@ -90,7 +117,7 @@ class SongRepository {
         // Otherwise rewrite this valid playlist back to the file. 
         File currentPlaylistFile = await SongSaver.getPlaylistFile(playlistName: playlistName);
         await SongSaver.rewriteSavedSongPaths(newPlaylist.getAllPathsInPlaylist(), songPathFile: currentPlaylistFile);
-        IO.w('Spotted $invalidSongs invalid Song. Write back to playlist "$playlistName" completed!');
+        IO.w('Spotted $invalidSongs invalid Song and isOnFileSystem = $isOnFileSystem. Write back to playlist "$playlistName" completed!');
         
         playlistNotifier.updatePlaylist(playlistName, newPlaylist);
         return; 
@@ -104,7 +131,7 @@ class SongRepository {
     /// 
     /// Finally, notify listener with [setMasterListAndNotifyListeners].
     /// 
-    /// Does not update info in the file containing the playlist. Call [loadPlaylists] to do this!
+    /// Does not update info in the file containing the playlist. Call [loadPlaylists] or [loadPlaylist] to do this!
     static Future<void> loadSongs() async {
         masterSongPlaylist.getCurrentPlaylistSongs().clear(); // Clear any previous songs in the list. 
         File currentWorkingMasterFile = await SongSaver.getMasterFile();
