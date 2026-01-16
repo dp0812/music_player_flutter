@@ -31,6 +31,11 @@ class SongsPlaylist {
         return true; 
     }
 
+    Song? firstSong(){
+        if (_currentPlaylist.isNotEmpty) return _currentPlaylist.first; 
+        return null; 
+    }
+
     /// Returns true if path of the given Song object already exists in the list. 
     bool _isSongInPlaylist(Song someSong){
         return _currentPlaylist.any((song) => song.assetPath == someSong.assetPath);

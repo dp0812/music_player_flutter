@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:music_player/ui_components/add_song_to_playlists.dart';
 
 import 'song_detail_page.dart';
 import '../entities/song.dart';
 import '../ui_components/album_art.dart';
+import '../ui_components/add_song_to_playlists.dart';
 import '../ui_components/now_playing_display.dart';
+import '../ui_components/marquee_song_title.dart';
 import '../ui_components/music_player_dock.dart';
 import '../ui_components/song_meta_data_row.dart';
 import '../utilities/misc_formatter.dart'; 
@@ -81,13 +82,10 @@ class SongDetailPageState extends State<SongDetailPage> {
     
     /// Provide display of [_displayedSong.title] and [_displayedSong.artist]
     Widget _buildSongInfo(BuildContext context, Song? song){
-        String title; 
         String? artist; 
         if (song == null) {
-            title = "Not Playing anything";
             artist = "No Artist Found";
         } else {
-            title = song.title;
             artist = song.artist; 
         }
         
@@ -96,16 +94,10 @@ class SongDetailPageState extends State<SongDetailPage> {
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                    Text(
-                        title,
-                        style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                    ),
+                    MarqueeSongTitle(newCurrentSong: song, titleBoxWidth: MediaQuery.sizeOf(context).width - 80 , titleBoxHeight: 40, titleFontSize: 24),
                     const SizedBox(height: 8),
                     Text(
+                        textAlign: .center,
                         artist ?? "Unknown Artist",
                         style: TextStyle(
                             fontSize: 18,

@@ -140,6 +140,14 @@ class DarkThemes {
                 elevation: 4, // Depth feeling for the card in settings. 
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),  // Rounded corners. 
             ),
+            popupMenuTheme: PopupMenuThemeData(
+                color: islandColor,
+                shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                // Make the menu slightly more distinguishable.
+                side: BorderSide(color: secondaryColor.withValues(alpha: 0.1))),
+                elevation: 0,
+            ),
             listTileTheme: ListTileThemeData(
                 textColor: secondaryColor,
                 iconColor: secondaryColor,

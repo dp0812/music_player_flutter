@@ -6,7 +6,7 @@ import 'package:audiotags/audiotags.dart';
 /// 
 /// However, this class provide quick access to the title, assetPath and mainly the song cover art.
 class Song {
-    final String title;
+    String title;
     final String assetPath;
     
     // Derived from assetPath.
@@ -24,20 +24,21 @@ class Song {
     /// User must use this to ensure reading of metadata is completed. 
     /// 
     /// This functions wait for all metadata to be in place, and loaded correctly before returning an instance with this metadata. 
+    /// [title] is a backup solution if the metadata does not contain a title. 
     static Future<Song> create({required String title, required String assetPath}) async{
         Song newSong = Song._create(title: title, assetPath: assetPath);
         await newSong._readMetadata();
         return newSong;
     }
 
-    /// Tag store all metadata BUT we only want picture, and artist/album artist. NOTHING else. 
+    /// Read the picture, title and artist from the tag.  
     Future<void> _readMetadata() async {
         try {
             Tag? tag = await AudioTags.read(assetPath);
             currentTag = tag; // This tag contains ALL metadata info. 
-            // Extract album art from pictures.
             if (currentTag == null) return; 
-
+            
+            // Extract album art from pictures.
             if (currentTag!.pictures.isNotEmpty) {
                 // Try to find front cover first.
                 Picture? cover = currentTag!.pictures.firstWhere(
@@ -49,9 +50,13 @@ class Song {
                 albumArtBytes = null;
             }
 
-            if (currentTag?.trackArtist != null) {
+            // Find the title. 
+            if (currentTag!.title != null) title = currentTag!.title!; 
+
+            // Find the artist. Use albumArtist if not found trackArtist. 
+            if (currentTag!.trackArtist != null) {
                 artist = currentTag!.trackArtist;
-            } else if (currentTag?.albumArtist != null ){
+            } else if (currentTag!.albumArtist != null ){
                 artist = currentTag!.albumArtist;
             }
             

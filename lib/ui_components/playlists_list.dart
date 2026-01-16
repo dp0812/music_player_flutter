@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:music_player/ui_components/custom_list_tile.dart';
 
+import 'playlist_grid_view.dart';
+import 'playlist_list_view.dart';
 import 'placeholder_content.dart';
 import '../entities/song_repository.dart';
 import '../entities/song_playlist.dart';
@@ -17,13 +18,15 @@ class PlaylistsList extends StatelessWidget {
     final PlaylistTapCallback? onPlaylistButtonTapTwo; 
     /// Avoid dock (in compact mode) from preventing user click on the last item of the list. 
     final double bottomPadding;
+    final bool viewGMode;
     
     const PlaylistsList({
         super.key, 
         required this.onPlaylistTap, 
         this.onPlaylistButtonTap,
         this.onPlaylistButtonTapTwo,
-        this.bottomPadding = 180, 
+        this.bottomPadding = 180,
+        this.viewGMode = false,  
     });
 
     /// Projects all available playlists from the [SongRepository].
@@ -38,109 +41,41 @@ class PlaylistsList extends StatelessWidget {
                 builder: (context, child) {
                     final List<SongsPlaylist> playlists = 
                         SongRepository.playlistNotifier.playlists.values.toList();
+                    
                     /// If there exist some playlist => provide list of playlists. Otherwise provide placeholder. 
-                    return playlists.isNotEmpty
-                        ? _PlaylistListView(
-                            context: context, 
-                            playlists: playlists,
-                            onPlaylistTap: onPlaylistTap,
-                            onPlaylistButtonTap: onPlaylistButtonTap,
-                            onPlaylistButtonTapTwo: onPlaylistButtonTapTwo,
-                            bottomPadding: bottomPadding,
-                        )
-                        : PlaceholderContent(displayMessage: "No playlists found in your system. Click the 'Add Playlist' button to create one!");
+                    return _correctViewMode(playlists, context);
+
                 },
             ),
         );
     }
-}
 
-class _PlaylistListView extends StatelessWidget {
-    final BuildContext context;
-    final List<SongsPlaylist> playlists;   
-    final PlaylistTapCallback onPlaylistTap; 
-    final PlaylistTapCallback? onPlaylistButtonTap; 
-    final PlaylistTapCallback? onPlaylistButtonTapTwo;
-    /// We know from above that the bottom padding by default is 180, so it is non-nullable. 
-    final double bottomPadding;
-    
-    const _PlaylistListView({
-        required this.context, 
-        required this.playlists,
-        required this.onPlaylistTap,
-        this.onPlaylistButtonTap,
-        this.onPlaylistButtonTapTwo,
-        required this.bottomPadding, 
-    });
-
-    @override
-    Widget build(BuildContext context) {
-        return CustomScrollView(
-            slivers: [
-                SliverList(delegate: SliverChildBuilderDelegate(
-                    childCount: playlists.length, 
-                    (context, index){
-                        final playlist = playlists[index];
-                        return _PlaylistTile(
-                            playlist: playlist,
-                            onPlaylistTap: onPlaylistTap,
-                            onPlaylistButtonTap: onPlaylistButtonTap,
-                            onPlaylistButtonTapTwo: onPlaylistButtonTapTwo,
-                        );
-                    }
-                )),
-                SliverPadding(padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom + bottomPadding)),
-            ],
+    Widget _correctViewMode(List<SongsPlaylist> playlists, BuildContext context) {
+        if (playlists.isEmpty) {
+            return PlaceholderContent(
+                displayMessage: "No playlists found in your system. Click the 'Add Playlist' button to create one!"
+            );
+        }
+        
+        if (viewGMode) {
+            return PlaylistGridView(
+                context: context, 
+                playlists: playlists, 
+                onPlaylistTap: onPlaylistTap, 
+                onPlaylistButtonTap: onPlaylistButtonTap,
+                onPlaylistButtonTapTwo: onPlaylistButtonTapTwo,
+                bottomPadding: bottomPadding
+            );
+        }
+        
+        return PlaylistListView(
+            context: context, 
+            playlists: playlists,
+            onPlaylistTap: onPlaylistTap,
+            onPlaylistButtonTap: onPlaylistButtonTap,
+            onPlaylistButtonTapTwo: onPlaylistButtonTapTwo,
+            bottomPadding: bottomPadding,
         );
-    }
-}
-
-/// Custom list tiletile. 
-class _PlaylistTile extends StatelessWidget{
-    final SongsPlaylist playlist;   
-    final PlaylistTapCallback onPlaylistTap; 
-    final PlaylistTapCallback? onPlaylistButtonTap; 
-    final PlaylistTapCallback? onPlaylistButtonTapTwo;
-
-    const _PlaylistTile({
-        required this.playlist, 
-        required this.onPlaylistTap,
-        required this.onPlaylistButtonTap, 
-        required this.onPlaylistButtonTapTwo
-    });
-
-    @override
-    Widget build(BuildContext context) {
-        return CustomListTile(
-            leading: const Icon(Icons.featured_play_list), 
-            title: playlist.playlistName, 
-            subtitle: "${playlist.songCount} song(s)", 
-            onTap: () => onPlaylistTap(playlist),
-            trailing: 
-                Row(
-                    spacing: 2.0,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [ 
-                        Icon(Icons.more_vert),
-                        const SizedBox(width: 3,),
-                        if (onPlaylistButtonTapTwo != null)
-                        IconButton (
-                            icon: const Icon(Icons.edit, color: Colors.blue),
-                            onPressed: () => onPlaylistButtonTapTwo!(playlist),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            tooltip: "Rename Playlist", 
-                        ),
-                        if (onPlaylistButtonTap != null)
-                        IconButton (
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => onPlaylistButtonTap!(playlist),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            tooltip: "Delete Playlist", 
-                        ),
-                    ],
-                ) 
-        );
+        
     }
 }

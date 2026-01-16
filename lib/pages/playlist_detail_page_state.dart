@@ -18,9 +18,7 @@ import '../ui_components/song_list.dart';
 /// Provides a list view of the current songs in the playlist alongside with the playback controls dock and the progress bar.
 class PlaylistDetailPageState extends State<PlaylistDetailPage> {
 
-    // Load flag for UI purpose. 
     bool _isLoading = true;
-    /// Reorder state.
     bool _reorderMode = false;
 
     @override

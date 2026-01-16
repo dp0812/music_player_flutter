@@ -16,6 +16,8 @@ import '../ui_components/song_management_bar.dart';
 class PlaylistPageState extends State<PlaylistPage> {
     bool _isLoading = false; 
     bool _isDisposed = false;
+    /// Change view mode. 
+    bool _viewGMode = true; 
 
     @override
     void initState() {
@@ -40,6 +42,8 @@ class PlaylistPageState extends State<PlaylistPage> {
                             SongManagementBar(
                                 actionOneLabel: "New Playlist",
                                 buttonActionOne: _addPlaylistByName,
+                                actionTwoLabel: "Toggle View",
+                                buttonActionTwo: _toggleViewGMode,
                             ),
                             _buildPlaylistsListWithBottomPadding(),
                         ],
@@ -65,6 +69,7 @@ class PlaylistPageState extends State<PlaylistPage> {
                         onPlaylistTap: _gotoPlaylistDetailPage,
                         onPlaylistButtonTap: _deletePlaylist,
                         onPlaylistButtonTapTwo: _renamePlaylist,
+                        viewGMode: _viewGMode,
                     );
                 }
             ),
@@ -149,6 +154,10 @@ class PlaylistPageState extends State<PlaylistPage> {
         );
 
         setState(() {/* Rebuild UI */});
+    }
+
+    void _toggleViewGMode(){
+        setState(() => _viewGMode = !_viewGMode);
     }
 
     void _updateLoadingState(bool isLoading) {

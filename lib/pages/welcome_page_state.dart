@@ -159,7 +159,23 @@ class WelcomePageState extends State<WelcomePage> {
         // Update page to complete loading status. 
         _pageLoadingStates[pageIndex] = isLoading;
         if (pageIndex == _selectedIndex && mounted) {
-            setState(() {/* Finally rebuild UI. */});
+            /// The following error is avoided by using microtask: 
+            /// From lib => home, the lib is disposed, => set the loading to false. 
+            /// This mean the tree is locked. So calling a normal set state will crash the app. 
+            /// 
+            /// The exception looks something like this: 
+            /// FlutterError (setState() or markNeedsBuild() called when widget tree was locked.
+            /// This WelcomePage widget cannot be marked as needing to build because the framework is locked.
+            /// The widget on which setState() or markNeeds Build() was called was:
+            /// WelcomePage)
+            /// 
+            /// So instead, wait till this tree is unlocked (animation done), then call setstate.
+            /// microtask is nothing but a scheduler. 
+            Future.microtask(() {
+                if (mounted) {
+                    setState(() {/* Schedule rebuild. */});
+                }
+            });
         }
     }
 

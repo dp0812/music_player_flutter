@@ -11,23 +11,25 @@ class MarqueeSongTitle extends StatelessWidget{
     final Song? newCurrentSong; 
     final double titleBoxHeight;
     final double titleBoxWidth;
+    final double titleFontSize; 
 
     const MarqueeSongTitle({
         super.key, 
         required this.newCurrentSong,
         this.titleBoxHeight = Constraints.titleBoxHeight,
-        this.titleBoxWidth = Constraints.titleBoxWidth, 
+        this.titleBoxWidth = Constraints.titleBoxWidth,
+        this.titleFontSize = 16,  
     });
   
     @override
     Widget build(BuildContext context) {
         String title = newCurrentSong?.title ?? "Not Playing Anything"; 
 
-        // Max width of the song title is 100 pixel. 
+        // Max width of the song title is [titleBoxWidth]. 
         final titlePixelWidth = TextPainter(
             text: TextSpan(
                 text: title, 
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+                style: TextStyle(fontSize: titleFontSize, fontWeight: FontWeight.bold)
             ),
             maxLines: 1,
             textDirection: TextDirection.ltr,
@@ -40,7 +42,7 @@ class MarqueeSongTitle extends StatelessWidget{
                 height: titleBoxHeight, 
                 child: Marquee(
                     text: title,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: titleFontSize, fontWeight: FontWeight.bold),
                     scrollAxis: Axis.horizontal,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     blankSpace: 50.0,
@@ -60,7 +62,7 @@ class MarqueeSongTitle extends StatelessWidget{
                 padding: const EdgeInsets.only(top: 4), // Fine tunning for the text to go fuck down. 
                 child: Text(
                     title, 
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: titleFontSize, fontWeight: FontWeight.bold),
                     textAlign: TextAlign.center,
                 )
             ), 
