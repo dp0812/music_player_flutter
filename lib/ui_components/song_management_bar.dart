@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'glass_button.dart';
 
-/// A horizontal song management buttons (support up to 2 buttons) bar that sits above the song list.
+/// A horizontal song management bar (support up to 2 buttons) that sits above the song list.
 /// 
 /// Use the [GlassButton] for its button child. 
 class SongManagementBar extends StatelessWidget {
     final String actionOneLabel; 
     final String actionTwoLabel; 
+    /// Default a plus. 
+    final IconData actionOneIcon;
+    /// Default a folder.  
+    final IconData actionTwoIcon;
     final void Function()? buttonActionOne;
     final void Function()? buttonActionTwo;
     
@@ -14,6 +18,8 @@ class SongManagementBar extends StatelessWidget {
         super.key, 
         this.actionOneLabel = "Action One",
         this.actionTwoLabel = "Action Two",
+        this.actionOneIcon = Icons.add,
+        this.actionTwoIcon = Icons.folder_open, 
         this.buttonActionOne, 
         this.buttonActionTwo
     });
@@ -42,7 +48,7 @@ class SongManagementBar extends StatelessWidget {
                     if (buttonActionOne != null)
                         GlassButton(
                             onTap: buttonActionOne!,
-                            icon: Icons.add,
+                            icon: actionOneIcon,
                             text: actionOneLabel,
                             color: themeColor.onPrimary,
                         ),
@@ -52,7 +58,7 @@ class SongManagementBar extends StatelessWidget {
                     if (buttonActionTwo != null)
                         GlassButton(
                             onTap: buttonActionTwo!,
-                            icon: Icons.folder_open,
+                            icon: actionTwoIcon,
                             text: actionTwoLabel,
                             color: themeColor.onPrimary,
                         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'album_art.dart';
+import 'constraints.dart';
 import 'custom_grid_tile.dart';
 import 'playlist_cover.dart';
 import 'playlists_list.dart';
@@ -35,7 +36,10 @@ class PlaylistGridTile extends StatelessWidget{
         return CustomGridTile(
             leading: Container(
                 padding: enableDisc? EdgeInsets.only(right: 20) : EdgeInsets.zero,
-                child: PlaylistCover(playlistArt:_dynamicAlbumArt(context), enableDisc: enableDisc,),
+                child: ClipRRect(
+                    borderRadius: BorderRadius.circular(Constraints.artBorderRad),
+                    child: PlaylistCover(playlistArt:_dynamicAlbumArt(context), enableDisc: enableDisc,)
+                ),
             ),
             title: playlist.playlistName,
             subtitle: "${playlist.songCount} song(s)",

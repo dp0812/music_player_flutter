@@ -2,10 +2,10 @@ import 'dart:io';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
 import 'custom_themes/theme_provider.dart';
+import 'entities/android_file_system.dart';
 import 'entities/album_art_helper.dart';
 import 'entities/custom_audio_handler.dart';
 import 'entities/audio_player_service.dart';
@@ -22,7 +22,7 @@ Future<void> main() async {
     /// Notification system. 
     WidgetsFlutterBinding.ensureInitialized();
     
-    if(Platform.isAndroid) await Permission.notification.request();
+    if(Platform.isAndroid) await AndroidFileSystem.requestAndroidPermission();
 
     final playerService = AudioPlayerService();
     final controlsManager = SongControlsManager(audioService: playerService);
@@ -48,13 +48,13 @@ Future<void> main() async {
     await AlbumArtHelper.cleanUpOldFiles();
     
     /// Actual app run. 
-    runApp(MyApp(playerService: playerService, controlsManager: controlsManager,));
+    runApp(MyApp(controlsManager: controlsManager,));
 }
 
 class MyApp extends StatelessWidget {
-    final AudioPlayerService playerService;
+
     final SongControlsManager controlsManager; 
-	const MyApp({super.key, required this.playerService, required this.controlsManager});
+	const MyApp({super.key, required this.controlsManager});
 
 	@override
 	Widget build(BuildContext context) {
@@ -72,7 +72,7 @@ class MyApp extends StatelessWidget {
                             theme: themeProvider.currentTheme,
                             darkTheme: themeProvider.currentTheme,
                             themeMode: ThemeMode.dark,
-                            home: WelcomePage(audioService: playerService, controlsManager: controlsManager,),
+                            home: WelcomePage(audioService: controlsManager.audioService, controlsManager: controlsManager,),
                         );
                     },
                 );

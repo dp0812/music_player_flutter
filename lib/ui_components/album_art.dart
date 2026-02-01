@@ -2,6 +2,8 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import 'constraints.dart';
+
 /// Provides visualization of album art, constrained to a sized box, with default placeholder for null. 
 class AlbumArt extends StatelessWidget{
     /// The bytes extracted from metadata of an mp3 file that holds an album art. 
@@ -19,7 +21,7 @@ class AlbumArt extends StatelessWidget{
             width: artWidth,
             height: artHeight,
             decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(Constraints.artBorderRad),
                 boxShadow: [
                     BoxShadow(
                         color: Colors.black.withValues(alpha: 0.1),
@@ -30,7 +32,7 @@ class AlbumArt extends StatelessWidget{
                 color: Theme.of(context).colorScheme.surface , // Same as background color. 
             ),
             child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(Constraints.artBorderRad),
                 child: _buildAlbumArtImage()
             ),
         );

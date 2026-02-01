@@ -193,16 +193,24 @@ class SongScreenState extends State<SongScreen> {
             context: context, 
             delegate: SongSearchDelegate(
                 availableSongs: SongRepository.masterSongPlaylist.getCurrentPlaylistSongs(),
-                onSongTap: _handleSongTap),
+                onSongTap: _handleSongTap
+            ),
         );
     }
 
-    /// Clean up and ensure file intergrity when user navigates to this page. 
+    /// Clean up and ensure file intergrity when user navigates to this page on app start up.  
+    ///
+    /// The first time app start, call [SongRepository.loadSongs] to check for invalid songs (which will be removed). 
+    /// 1. For any subsequence navigation to [SongScreenState], only remove invalid songs file if user interact with them.
+    /// 2. For any subsequence navigation to [PlaylistPageState], if an invalid songs is spotted inside the playlist, then removal of those songs will also be triggered (in both applicable playlist(s) and SongScreen). 
+    /// 
+    /// This will reduce load time per navigation into this page if we have a large amount of songs, while also ensuring the UI is properly updated. 
     Future<void> _loadAndSynchronizeSongs() async {
         _updateLoadingState(true);
-        await SongRepository.loadSongs();
-        // Obtain the playlist data for the add to function in song detail page to work on the 1st time the app start. 
+
+        /// Obtain the playlist data for the add to function in song detail page to work on the 1st time the app start. 
         if (_isFirstTime){
+            await SongRepository.loadSongs();
             await SongRepository.loadPlaylists(); 
             _isFirstTime = false; 
         }

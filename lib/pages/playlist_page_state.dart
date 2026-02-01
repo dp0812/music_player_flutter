@@ -41,8 +41,10 @@ class PlaylistPageState extends State<PlaylistPage> {
                         children: [
                             SongManagementBar(
                                 actionOneLabel: "New Playlist",
+                                actionOneIcon: Icons.playlist_add,
                                 buttonActionOne: _addPlaylistByName,
                                 actionTwoLabel: "Toggle View",
+                                actionTwoIcon: Icons.grid_view,
                                 buttonActionTwo: _toggleViewGMode,
                             ),
                             _buildPlaylistsListWithBottomPadding(),

@@ -177,6 +177,13 @@ class _ReorderableSongListState extends State<ReorderableSongList> {
         );
     }
 
+    /// Reorder playlist and write the update to file (if applicable) and notify listener. 
+    ///  
+    /// If the current working playlist [widget.currentPlaylist] is the same as active playlist [SongControlsManager.activeSongsPlaylist], 
+    /// then set the active playlist to the newly reordered list.
+    /// 
+    /// Remarks: current working playlist does not mean it is the current playing playlist, it simply means that this playlist is visible on the UI, and that we can reorder it. 
+    /// Current working playlist is the same as [SongControlsManager.activeSongsPlaylist] if their playlistName are identical.  
     Future<void> _saveCurrentPlaylistOrder() async {
         final playlistName = widget.currentPlaylist.playlistName;
         
@@ -192,6 +199,12 @@ class _ReorderableSongListState extends State<ReorderableSongList> {
                 playlistName,
                 SongRepository.allSongPlaylists[playlistName]!,
             );
+ 
+            /// Set active playlist. 
+            if (playlistName == SongControlsManager.activeSongsPlaylist.playlistName){
+                final SongsPlaylist updatedPlaylist = SongRepository.playlistNotifier.playlists[playlistName]!;
+                widget.controlsManager.setActivePlaylist(updatedPlaylist);
+            }
         }
     }
 

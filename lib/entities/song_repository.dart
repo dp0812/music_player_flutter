@@ -19,7 +19,7 @@ import '../utilities/io_print.dart';
 /// 2. In [loadPlaylists] and [loadPlaylist] (note that the first is plural, and the second is singular), an invalid song is a song that its assetPath cannot be found in [SongSaver.masterFileNameExt].
 ///     - Corollary 2: if the assetPath of a song can be found in [SongSaver.masterFileNameExt] BUT cannot be located on the file system, it is a valid song. 
 ///  
-/// Therefore, the defintion of "valid song" depends on the context (haha). 
+/// Therefore, the definition of "valid song" depends on the context (haha). 
 /// Thus, in definition 2, If we do not want to reload the entire [masterSongPlaylist], 
 /// there is a need to add a check for whether a song is on the file system first, then check if it is in [SongSaver.masterFileNameExt]. 
 class SongRepository {

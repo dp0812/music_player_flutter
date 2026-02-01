@@ -9,7 +9,7 @@ Note that these following situations do not break the application (no red error 
     - That is, moving from and to any pages in the application will still display the songs (and can still controls those).
     - This current active list will determine which song can be played next, via loop, next, previous, random. 
     - This active list will only be update when the user click on a song that is NOT currently playing - to play that Song. Then the list which the song belongs to is considered as the new active list - playlist takes precedence over master list. 
-    - Any add / delete will immediately takes effect, thus, the next song will automatically be corrected. 
+    - Any add / delete / reorder will immediately takes effect, thus, the next song will automatically be corrected. 
 
 - Remark 3: 
     - After many considerations, the build function will be move to be the immediate next thing after the initialization of the state. 

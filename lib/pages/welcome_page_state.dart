@@ -45,7 +45,7 @@ class WelcomePageState extends State<WelcomePage> {
                     child: _buildTransitionAnimation(),
                 ),
             ),
-        bottomNavigationBar: _buildNavigationBar(),
+            bottomNavigationBar: _buildNavigationBar(),
         );
     }
 

@@ -9,7 +9,7 @@ import 'song_repository.dart';
 import 'song_saver.dart';
 import '../utilities/io_print.dart';
 
-/// Android specific handling for the scanning of files. 
+/// Android specific permisison and scanning. 
 class AndroidFileSystem {
     /// Scan Android music directory. If no song found, move to download dir. 
     static Future<int> scanAndroidMusicDirectory() async {
@@ -95,16 +95,20 @@ class AndroidFileSystem {
         return songsAdded; 
     }
 
-    /// Request audio permission on Android device. Return true if permission for audio is granted, otherwise false. 
+    /// Request audio permission and notification permission on Android device. Return true if permission for audio is granted, otherwise false. 
     /// 
     /// This request can only be performed after the following are guaranteed: 
     /// 1. gradle.properties has these 2 lines: [android.useAndroidX=true] and [android.enableJetifier=true]
     /// 2. AndroidManifest.xml has the permission tag (See the AndroidManifest.xml file for more info).
     static Future <bool> requestAndroidPermission() async {
         IO.d("Waiting for permission on Android device.");
-        var status1 = await Permission.audio.request();
-        if (status1.isDenied) IO.w("No audio permission granted.");
-        if (status1.isGranted) IO.i("Granted audio permission on Android device. Proceed.");
-        return status1.isGranted;
+        var statusAudio = await Permission.audio.request();
+        var statusNotification = await Permission.notification.request();
+
+        if (statusAudio.isDenied) IO.w("No audio permission granted.");
+        if (statusNotification.isDenied) IO.w("No notification permission granted.");
+        if (statusAudio.isGranted) IO.i("Granted audio permission on Android device.");
+        if (statusNotification.isGranted) IO.i("Granted notification permission on Android device.");
+        return statusAudio.isGranted && statusNotification.isGranted;
     }
 }

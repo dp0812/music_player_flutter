@@ -71,8 +71,7 @@ class SongDetailPageState extends State<SongDetailPage> {
             builder: (context, currentSong, child) {
                 return Column(
                     children: [
-                        const SizedBox(height: 50),
-                        AlbumArt(albumArtBytes: currentSong?.albumArtBytes),
+                        AlbumArt(albumArtBytes: currentSong?.albumArtBytes, artHeight: 300, artWidth: 300,),
                         _buildSongInfo(context, currentSong),
                     ],
                 );
@@ -174,8 +173,6 @@ class SongDetailPageState extends State<SongDetailPage> {
                 return AddSongToPlaylists(currentSong: displayedSong);
             }
         );
-
-        setState(() {/* Rebuild UI with new song count and new song in playlist */});
     }
 
     @override
