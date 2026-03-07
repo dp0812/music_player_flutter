@@ -29,6 +29,29 @@ cd music_player_flutter
 flutter pub get
 flutter run lib/main.dart
 ```
+
+Note: specifically for Linux system, for example, I am using CachyOS, there might be an error that looks like this if you run the application in debug mode.  
+
+```bash
+PlatformException(LinuxAudioError, Unknown GstGError. See details., Your GStreamer installation is missing a plug-in. (Domain: gst-core-error-quark, Code: 12), null)
+```
+
+Then please try to download the package accordingly. 
+
+For CachyOS (Arch based):
+```bash
+sudo pacman -Syu gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly gst-libav
+```
+
+For Debian based: 
+```bash
+sudo apt update
+sudo apt install gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly
+```
+
+For Fedora based: I do not have a fedora device. But perhaps just change the package manager to dnf and hope that it works. 
+
+
 To compile binaries for testing on an android device: 
 
 ```bash
